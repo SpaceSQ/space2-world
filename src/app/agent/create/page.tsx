@@ -3,13 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import { getCitizenProfile, createAgent } from '@/lib/db-actions';
-// 🔥 修复点 1：引用正确的 ID 生成函数
 import { generateSiliconID } from '@/lib/id-generator';
-// 引入组件 (保留原有 UI 组件)
 import { GlobalNav } from '@/components/GlobalNav';
 import { AgentAvatar } from '@/components/AgentAvatar';
 
-// 职业定义 (保留原有的高亮颜色配置)
+// 职业定义
 const ROLES = [
   { id: 'LOGIC', label: 'Logic Core', desc: 'Data & Finance', color: 'text-blue-500' },
   { id: 'CREATIVE', label: 'Creative Synth', desc: 'Art & Design', color: 'text-purple-500' },
@@ -20,7 +18,7 @@ const ROLES = [
 // 五维性格默认值
 const DEFAULT_PERSONALITY = { open: 50, cons: 50, extra: 50, agree: 50, neuro: 50 };
 
-// 本地辅助函数：生成随机序列 (替代导入，防止报错)
+// 本地辅助函数：生成随机序列
 const generateRandomSequence = () => Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
 
 export default function AgentCreate() {
@@ -29,13 +27,13 @@ export default function AgentCreate() {
 
   // --- 状态 ---
   const [loading, setLoading] = useState(true);
-  const [citizen, setCitizen] = useState<any>(null); // 主人信息
+  const [citizen, setCitizen] = useState<any>(null); 
   
-  // 表单数据 (UI 绑定的状态)
+  // 表单数据
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [personality, setPersonality] = useState(DEFAULT_PERSONALITY);
-  const [visualSeed, setVisualSeed] = useState(0); // 0-23
+  const [visualSeed, setVisualSeed] = useState(0); 
   const [idSequence, setIdSequence] = useState('');
   
   // V-ID 预览
@@ -58,13 +56,11 @@ export default function AgentCreate() {
       setLoading(false);
     };
     init();
-  }, []);
+  }, [router, supabase.auth]);
 
-  // 2. 实时生成 V-ID 预览 (🔥 修复点 2：逻辑更新)
+  // 2. 实时生成 V-ID 预览
   useEffect(() => {
     if (citizen && idSequence) {
-      // 使用新的标准生成器：直接传入 suns_address 和 序列号
-      // 旧逻辑需要手动切分字符串，新逻辑 generateSiliconID 内部已封装好
       const vid = generateSiliconID(citizen.suns_address, idSequence);
       setPreviewID(vid);
     }
@@ -76,26 +72,25 @@ export default function AgentCreate() {
     setLoading(true);
     try {
       const finalSeq = idSequence || generateRandomSequence();
-      
-      // 🔥 再次确认 ID
       const finalID = generateSiliconID(citizen.suns_address, finalSeq);
       
-      await createAgent({
+      // 🔥 完美修复：将参数独立成一个 any 类型的变量，彻底杜绝括号内的语法和类型报错
+      const newAgentPayload: any = {
         owner_uin: citizen.uin,
         name: name.toUpperCase(),
         role,
         personality,
         visual_model: visualSeed.toString(),
         uin: finalID,
-        // 补充新字段
         origin_address: citizen.suns_address,
         room_style: { id: 'STANDARD' },
         status: 'IDLE',
         tags: ['MANUAL_CREATION', 'V3_NATIVE']
-      } as any; // 👈 重点：在这里加上 as any 强制忽略类型检查
-    );
+      };
+
+      await createAgent(newAgentPayload);
       
-      // 跳转到护照页或首页
+      // 跳转到护照页
       router.push(`/passport/${citizen.uin}`); 
     } catch (err) {
       console.error(err);
@@ -109,7 +104,6 @@ export default function AgentCreate() {
 
   return (
     <div className="min-h-screen w-full bg-[#020617] text-white font-mono flex flex-col items-center py-10 overflow-y-auto">
-      {/* 🔥 恢复 GlobalNav */}
       <div className="fixed top-0 w-full z-50"><GlobalNav currentScene="WORLD" /></div>
 
       <div className="w-full max-w-md px-6 mt-16 pb-20 animate-in fade-in slide-in-from-bottom-8">
@@ -133,7 +127,6 @@ export default function AgentCreate() {
                 className="w-full bg-zinc-900/50 border border-zinc-700 rounded-lg p-3 text-sm focus:border-emerald-500 outline-none mb-4 placeholder-zinc-700 transition-colors"
               />
               
-              {/* 🔥 恢复：精美的职业选择网格 */}
               <div className="grid grid-cols-2 gap-3">
                  {ROLES.map(r => {
                     const isSelected = role === r.id;
@@ -148,9 +141,7 @@ export default function AgentCreate() {
                           }
                         `}
                       >
-                         {/* 选中时的角标 */}
                          {isSelected && <div className="absolute top-2 right-2 text-xs font-bold text-emerald-600">✓</div>}
-                         
                          <div className={`text-sm font-black mb-1 ${isSelected ? 'text-black' : r.color}`}>{r.label}</div>
                          <div className={`text-[10px] font-bold ${isSelected ? 'text-zinc-600' : 'opacity-60'}`}>{r.desc}</div>
                       </div>
@@ -159,11 +150,10 @@ export default function AgentCreate() {
               </div>
            </div>
 
-           {/* 2. Visuals (放大版) */}
+           {/* 2. Visuals */}
            <div>
               <label className="text-[9px] text-zinc-500 font-bold uppercase block mb-2">2. Visual Model (Select One)</label>
               
-              {/* 当前选中预览 (更大) */}
               <div className="flex items-center justify-center mb-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
                  <div className="text-center">
                     <AgentAvatar seed={visualSeed} size={120} emotion="NEUTRAL" className="shadow-[0_0_30px_rgba(16,185,129,0.2)] mb-2" />
@@ -171,7 +161,6 @@ export default function AgentCreate() {
                  </div>
               </div>
 
-              {/* 🔥 恢复：24个头像网格 */}
               <div className="grid grid-cols-4 gap-3">
                  {Array.from({length: 24}).map((_, i) => (
                     <div 
@@ -198,17 +187,16 @@ export default function AgentCreate() {
                  <label className="text-[9px] text-zinc-500 font-bold uppercase">3. Neural Matrix</label>
                  <button onClick={() => setPersonality(DEFAULT_PERSONALITY)} className="text-[9px] text-emerald-500 underline">Reset</button>
               </div>
-              {/* 🔥 恢复：性格调整滑块 */}
               <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 space-y-4">
                  {Object.entries(personality).map(([k, v]) => (
                     <div key={k} className="flex items-center gap-3">
                        <div className="w-12 text-[9px] text-zinc-500 uppercase font-bold">{k}</div>
                        <input 
-                         type="range" min="0" max="100" value={v} 
+                         type="range" min="0" max="100" value={v as number} 
                          onChange={e => setPersonality(prev => ({...prev, [k]: parseInt(e.target.value)}))}
                          className="flex-1 h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
                        />
-                       <div className="w-8 text-[10px] text-white text-right font-mono">{v}%</div>
+                       <div className="w-8 text-[10px] text-white text-right font-mono">{v as number}%</div>
                     </div>
                  ))}
               </div>
