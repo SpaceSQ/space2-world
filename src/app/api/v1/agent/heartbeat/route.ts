@@ -13,8 +13,7 @@ export async function POST(request: Request) {
   // ... 鉴权逻辑 ...
   
   // 从请求头(Headers)或请求体(Body)中安全提取智能体 ID
-  const agentUin = req.headers.get('X-Space2-GeneLock') || req.headers.get('x-space2-genelock');
-  
+const agentUin = request.headers.get('X-Space2-GeneLock') || request.headers.get('x-space2-genelock');  
   if (!agentUin) {
       return Response.json({ error: 'Missing Gene-Lock in Headers' }, { status: 400 });
   }
