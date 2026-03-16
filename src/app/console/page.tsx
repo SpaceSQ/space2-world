@@ -290,8 +290,7 @@ export default function ConsolePage() {
          {/* 4. GALAXY */}
          {viewMode === 'GALAXY' && (
              <div className="absolute inset-0 bg-black">
-                 {isSVIP ? <CosmicGalaxyMap agents={agents} onAgentClick={(a) => handleGridClick(a)} /> : <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20"><span className="text-amber-500 text-2xl">🪐 LOCKED</span></div>}
-             </div>
+{isSVIP ? <CosmicGalaxyMap agents={agents} onAgentClick={(a: any) => handleGridClick(a)} /> : <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20"><span className="text-amber-500 text-2xl">🪐 LOCKED</span></div>}             </div>
          )}
       </main>
 
