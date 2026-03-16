@@ -51,7 +51,7 @@ const generateGalaxyData = (centerId: string): StarNode[] => {
   return nodes;
 };
 
-export const CosmicGalaxyMap = () => {
+export const CosmicGalaxyMap = ({ agents, onAgentClick }: { agents?: any[], onAgentClick?: any }) => {
   const [selectedNode, setSelectedNode] = useState<StarNode | null>(null);
   const [nodes, setNodes] = useState<StarNode[]>([]);
   const [rotation, setRotation] = useState(0);
