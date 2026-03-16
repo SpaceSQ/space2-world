@@ -1,5 +1,14 @@
 // ... imports
 
+import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
+
+// 初始化 Redis 客户端
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
+});
+
 export async function POST(request: Request) {
   // ... 鉴权逻辑 ...
 
