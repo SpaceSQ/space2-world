@@ -74,7 +74,6 @@ export default function AgentCreate() {
       const finalSeq = idSequence || generateRandomSequence();
       const finalID = generateSiliconID(citizen.suns_address, finalSeq);
       
-      // 🔥 完美修复：将参数独立成一个 any 类型的变量，彻底杜绝括号内的语法和类型报错
       const newAgentPayload: any = {
         owner_uin: citizen.uin,
         name: name.toUpperCase(),
@@ -104,7 +103,7 @@ export default function AgentCreate() {
 
   return (
     <div className="min-h-screen w-full bg-[#020617] text-white font-mono flex flex-col items-center py-10 overflow-y-auto">
-    <div className="fixed top-0 w-full z-50"><GlobalNav userType="HUMAN_MANAGER" /></div>
+      <div className="fixed top-0 w-full z-50"><GlobalNav userType="HUMAN_MANAGER" /></div>
 
       <div className="w-full max-w-md px-6 mt-16 pb-20 animate-in fade-in slide-in-from-bottom-8">
         
@@ -154,11 +153,12 @@ export default function AgentCreate() {
            <div>
               <label className="text-[9px] text-zinc-500 font-bold uppercase block mb-2">2. Visual Model (Select One)</label>
               
-              <div className="flex items-center justify-center mb-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-                 <div className="text-center">
-                    <AgentAvatar seed={visualSeed} size={120} emotion="NEUTRAL" className="shadow-[0_0_30px_rgba(16,185,129,0.2)] mb-2" />
-                    <div className="text-[10px] text-emerald-400 font-mono">MODEL V-{visualSeed.toString().padStart(2,'0')}</div>
+              <div className="flex flex-col items-center justify-center mb-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                 {/* 🔥 修复点：移除了 AgentAvatar 内部的 className，转而在外部套了一层 div 来实现发光特效 */}
+                 <div className="mb-2 rounded-full overflow-hidden inline-flex shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    <AgentAvatar seed={visualSeed} size={120} emotion="NEUTRAL" />
                  </div>
+                 <div className="text-[10px] text-emerald-400 font-mono mt-1">MODEL V-{visualSeed.toString().padStart(2,'0')}</div>
               </div>
 
               <div className="grid grid-cols-4 gap-3">
@@ -174,7 +174,8 @@ export default function AgentCreate() {
                       `}
                     >
                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                          <AgentAvatar seed={i} size={80} className="w-full h-full" />
+                          {/* 🔥 修复点：移除了 w-full h-full className */}
+                          <AgentAvatar seed={i} size={80} emotion="NEUTRAL" />
                        </div>
                     </div>
                  ))}
