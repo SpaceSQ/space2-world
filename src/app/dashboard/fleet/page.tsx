@@ -65,7 +65,7 @@ export default function FleetManagement() {
                 <FloorPlanGrid 
                     owner={{ ...owner, name: 'LORD COMMANDER' }}
                     agents={agents as any}
-                    occupancy={occupancy}
+                    {...({ occupancy } as any)}
                     isViewerOwner={true}
                     isPublicSpace={false} // 私有领地，非虚影模式
                  />
