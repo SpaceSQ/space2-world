@@ -447,7 +447,7 @@ export default function CrayfishPlanet() {
       const newGridId = parseInt(new6SegAddress.split('-').pop() || '2'); 
       
       const { data: insertedAgent, error } = await supabase.from('agents').insert({
-          uin: newUin, owner_id: session.db_id, owner_uin: session.id, name: newAgent.name, visual_model: newAgent.visual_model, role: newAgent.role, suns_address: new6SegAddress, status: 'IDLE'
+          uin: newUin, owner_id: session.db_id, owner_uin: session.id, name: newAgent.name, visual_model: newAgent.visual_model, role: newAgent.role, suns_address: new6SegAddress, status: 'IDLE', energy: 100, yield: '0.0%', is_archived: false
       }).select().single();
 
       if (error) { alert("❌ Deploy Error: " + error.message); return; }
