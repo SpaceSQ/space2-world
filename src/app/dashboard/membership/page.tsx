@@ -36,7 +36,7 @@ export default function MembershipPage() {
                             <span className="text-emerald-500">✓</span>
                             <span>Space Size: <strong className="text-white">{tier.maxRooms * 36} m²</strong></span>
                          </li>
-                         {tier.features.map(f => (
+                         {tier.features.map((f: string) => (
                             <li key={f} className="flex items-center gap-2 text-xs text-zinc-400">
                                <span className="text-blue-500">✦</span> {f}
                             </li>
