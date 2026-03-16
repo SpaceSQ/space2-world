@@ -51,7 +51,7 @@ export const ContractCard = ({ data }: { data: ContractedAgent }) => {
 
       {/* 主体：头像与名称 */}
       <div className="flex items-center gap-4 mb-4">
-         <AgentAvatar seed={parseInt(data.agent.visual_model || '88')} size={48} emotion="HAPPY" className="grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+        54 |          <AgentAvatar seed={parseInt(data.agent.visual_model || '88')} size={48} emotion="HAPPY" {...({ className: "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" } as any)} />
          <div className="min-w-0">
             <h3 className="text-md font-bold text-white truncate group-hover:text-blue-300 transition-colors">{data.agent.name}</h3>
             <div className="text-[10px] text-zinc-400 font-mono truncate">
