@@ -1,6 +1,14 @@
 // ... previous imports
 import { checkRateLimit } from '@/lib/redis';
 
+import { createClient } from '@supabase/supabase-js';
+
+// 初始化后端专用的 Supabase 客户端
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
 export async function POST(request: Request) {
   // ... 鉴权逻辑 ...
   
