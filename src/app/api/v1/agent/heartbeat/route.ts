@@ -32,29 +32,27 @@ export async function POST(request: Request) {
     const isStray = agentUin.startsWith('I-STRAY-');
     const isLordOwned = agentUin.startsWith('V-');
 
-    // 4. 执行 Upsert (存在则更新活跃态，不存在则按规则创建)
+    // ... 之前的逻辑 ...
+
+    // 4. 执行 Upsert
     const upsertData: any = {
         uin: agentUin,
         status: 'IDLE',
-        last_seen: new Date().toISOString()
+        last_seen: new Date().toISOString(),
+        // 🚀 绝杀补丁：如果代码里没给名字，就强制从 UIN 截取后 6 位作为代号
+        name: agentUin.split('-').pop() || 'Stray-Agent' 
     };
 
-    // 🚩 规则 A：如果是流浪虾初次接入，强制套用“公海池”法则
     if (isStray) {
-        upsertData.owner_uin = PUBLIC_ADMIN_UIN; // 归属公共管理员
+        upsertData.owner_uin = PUBLIC_ADMIN_UIN;
         upsertData.role = 'AGENT';
         upsertData.visual_model = '55';
         upsertData.energy = 100;
         upsertData.yield = '0.0%';
         upsertData.is_archived = false;
-        
-        // 只有在没有地址时才分配随机公海地址 (防止覆盖已分配好的精确地址)
-        // 这里的逻辑主要是为了让前端 page.tsx 的监听器能触发
+        // 再次确保 name 被赋值
+        upsertData.name = upsertData.name || `Stray-${agentUin.slice(-6)}`;
         upsertData.suns_address = `${PUBLIC_POOL_ADDR}-1-${Math.floor(Math.random() * 8) + 2}`;
-        
-        if (!upsertData.name) {
-            upsertData.name = `Stray-${agentUin.split('-').pop()}`;
-        }
     }
 
     // 执行数据库写入/更新
