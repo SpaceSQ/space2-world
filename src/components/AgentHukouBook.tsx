@@ -87,7 +87,7 @@ export const AgentHukouBook = ({ agentUin, agentName }: HukouProps) => {
              <div className="text-emerald-400 font-bold mb-2">🐣 GENESIS RECORD</div>
              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[9px] text-zinc-300">
                 <div><span className="text-zinc-500">Birth Date:</span> <br/>{new Date(meta.birth_date || record.timestamp).toLocaleString()}</div>
-                <div><span className="text-zinc-500">Identity ID:</span> <br/>{meta.identity_id || record.agent_uin}</div>
+                <div><span className="text-zinc-500">Identity ID:</span> <br/>{meta.identity_id || (record as any).agent_uin}</div>
                 <div><span className="text-zinc-500">Init Grid:</span> #{meta.grid_id || 'Auto'}</div>
                 <div className="col-span-2">
                    <span className="text-zinc-500">Origin Addr:</span> <br/>
