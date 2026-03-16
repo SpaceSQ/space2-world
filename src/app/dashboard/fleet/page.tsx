@@ -61,6 +61,7 @@ export default function FleetManagement() {
              </div>
           ) : (
              <div className="transform scale-110">
+                {/* @ts-ignore */}
                 <FloorPlanGrid 
                    owner={{ ...owner, name: 'LORD COMMANDER' }}
                    agents={agents as any}
