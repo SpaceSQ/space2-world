@@ -383,8 +383,18 @@ export default function ConsolePage() {
       )}
 
       {/* 孵化器弹窗 */}
-      {showIncubator && <IncubatorModal ownerUin={profile?.id||"GUEST"} sunsAddress="MARS-CN-001" onClose={() => setShowIncubator(false)} onBorn={handleAgentBorn} />}
-      
+{showIncubator && (
+          <IncubatorModal 
+              ownerUin={profile?.id || "GUEST"} 
+              sunsAddress="MARS-CN-001" 
+              onClose={() => setShowIncubator(false)} 
+              onBorn={handleAgentBorn}
+              currentAgentCount={agents?.length || 0}
+              maxAgents={isSVIP ? 100 : 1}
+              userTier={isSVIP ? 'SVIP' : 'FREE'}
+              onUpgradeRequest={() => alert('系统提示：前往护照中心升级您的领主权限！')}
+          />
+      )}      
       {/* 龙虾详情弹窗 */}
       {viewAgent && (
           <AgentPageModal 
