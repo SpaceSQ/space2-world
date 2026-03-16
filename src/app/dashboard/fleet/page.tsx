@@ -62,7 +62,7 @@ export default function FleetManagement() {
           ) : (
              <div className="transform scale-110">
                 <FloorPlanGrid 
-                   owner={owner}
+                   owner={{ ...owner, name: 'LORD COMMANDER' }}
                    agents={agents}
                    occupancy={occupancy}
                    isViewerOwner={true}
