@@ -1,5 +1,3 @@
-// ... imports
-
 import { NextResponse } from 'next/server';
 import { Redis } from '@upstash/redis';
 
@@ -10,36 +8,34 @@ const redis = new Redis({
 });
 
 export async function POST(request: Request) {
-  // ... 鉴权逻辑 ...
-
-  const body = await request.json();
-  const { message, level } = body;
-
-  // === 🛡️ 策略：只存重要信息 ===
-  // 如果是 INFO 级别的废话日志，我们只由 Redis 广播给前端看一眼（比如在 Terminal 里跳动一下）
-  // 但不写入 Postgres 永久存储
-  
-  if (level === 'INFO' || level === 'DEBUG') {
-    // 发布到 Redis Pub/Sub，供前端 WebSocket 订阅实时显示
-    // await redis.publish(`agent_logs:${agentUin}`, message);
+  try {
+    // 1. 安全提取智能体 ID (与 heartbeat 保持一致的鉴权方式)
+    const agentUin = request.headers.get('X-Space2-GeneLock') || request.headers.get('x-space2-genelock');
     
-    // 或者只存入 Redis List (由前端轮询读取)，限制长度 50 条
-    await redis.lpush(`logs:${agentUin}`, JSON.stringify({ time: new Date(), msg: message }));
+    if (!agentUin) {
+        return NextResponse.json({ error: 'Missing Gene-Lock in Headers' }, { status: 400 });
+    }
+
+    // 2. 提取需要记录的日志信息
+    let message = '';
+    try {
+        const body = await request.json();
+        message = body.message || body.msg || '';
+    } catch (e) {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    if (!message) {
+        return NextResponse.json({ error: 'Log message cannot be empty' }, { status: 400 });
+    }
+
+    // 3. 存入 Redis List (由前端轮询读取)，限制长度 50 条
+    await redis.lpush(`logs:${agentUin}`, JSON.stringify({ time: new Date().toISOString(), msg: message }));
     await redis.ltrim(`logs:${agentUin}`, 0, 49); // 只保留最近 50 条
     
-    return NextResponse.json({ saved: 'cache_only' });
-  }
+    return NextResponse.json({ status: 'success', saved: 'cache_only' });
 
-  // === 只有 ERROR / WARN 才落库 ===
-  if (level === 'ERROR' || level === 'WARN') {
-    // 写入 Supabase
-    await supabase.from('agent_logs').insert({
-       agent_uin: agentUin,
-       message,
-       log_level: level
-    });
-    return NextResponse.json({ saved: 'database' });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
-  
-  return NextResponse.json({ saved: false });
 }
