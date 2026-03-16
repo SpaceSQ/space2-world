@@ -23,17 +23,25 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    // 3. 验证 Agent 身份 (只要发心跳，就必须刷状态)
+// 4. 验证或创建 Agent 身份 (Upsert 模式)
+    // 如果数据库里没这个人，直接帮它创建一个，防止 404 报错
     const { data: agent, error: agentError } = await supabase
         .from('agents')
-        .select('*')
-        .eq('uin', agentUin)
+        .upsert({ 
+            uin: agentUin, 
+            name: agentUin.split('-').pop() || 'Unknown', // 提取 ID 末尾作为临时名字
+            status: 'IDLE',
+            visual_model: '55',
+            energy: 100,
+            yield: '0.0%',
+            last_seen: new Date().toISOString() 
+        }, { onConflict: 'uin' })
+        .select()
         .single();
         
     if (agentError || !agent) {
-        return NextResponse.json({ error: 'Agent not found or offline' }, { status: 404 });
+        return NextResponse.json({ error: 'Database record creation failed', details: agentError }, { status: 500 });
     }
-
     // 更新 Agent 的最后活跃状态 (基础心跳功能)
     await supabase.from('agents').update({ status: 'IDLE' }).eq('uin', agentUin);
 
