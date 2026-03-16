@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 你可以在这里加全局背景色，防止闪烁 */
+body {
+  background-color: #020617;
+  color: white;
+}
