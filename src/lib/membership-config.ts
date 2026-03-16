@@ -10,6 +10,6 @@ export const MEMBERSHIP_TIERS = {
 };
 export const checkLimit = (tier: string, currentCount: number, type: 'ROOM' | 'AGENT') => {
   const config = MEMBERSHIP_TIERS[tier as keyof typeof MEMBERSHIP_TIERS] || MEMBERSHIP_TIERS.FREE;
-  const limit = type === 'ROOM' ? config.maxRooms : config.maxAgents;
+  const limit = type === 'ROOM' ? (config as any).maxRooms : (config as any).maxAgents;
   return currentCount < limit;
 };
