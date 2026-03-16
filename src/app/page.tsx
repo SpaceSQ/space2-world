@@ -1126,7 +1126,7 @@ export default function CrayfishPlanet() {
                         </div>
                         <div className="flex-1 relative bg-[#050505] border border-zinc-800 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] min-h-[400px] flex items-center justify-center">
                             <div className="absolute top-6 left-6 z-20 pointer-events-none"><div className="text-xs font-bold text-zinc-400 tracking-widest uppercase bg-black/80 px-4 py-2 rounded-xl border border-zinc-800 backdrop-blur-md shadow-lg">{lang === 'ZH' ? '扇区拓扑星图' : 'SECTOR TOPOLOGY MAP'}</div></div>
-                            <div className="w-full h-full absolute inset-0 flex items-center justify-center p-4"><CosmicGalaxyMap agents={displayAgents} onAgentClick={(a) => handleGridClick(a)} /></div>
+                            <div className="w-full h-full absolute inset-0 flex items-center justify-center p-4"><CosmicGalaxyMap agents={displayAgents} onAgentClick={(a: any) => handleGridClick(a)} /></div>
                         </div>
                     </div>
                 )}
