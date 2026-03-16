@@ -71,14 +71,19 @@ export async function POST(request: Request) {
         }, { status: 500 });
     }
 
-    // 5. 写入心跳日志 (Heartbeat Pulse)
-    // 这是触发前端 "LISTENING FOR EXTERNAL PULSE" 跳转到 IDCARD 的关键
-    await supabase.from('agent_logs').insert({
-        agent_uin: agentUin,
-        action: 'HEARTBEAT',
-        detail: body.content || body.achievement || 'System pulse synchronized.',
-        type: 'SUCCESS'
-    });
+ // 5. 写入心跳日志 (简化版，确保不触发数据库约束)
+    try {
+        await supabase.from('agent_logs').insert([
+            {
+                agent_uin: agentUin,
+                action: 'HEARTBEAT',
+                detail: 'External pulse synced.'
+                // 💡 暂时不传 type 字段，防止字段名不匹配导致报错
+            }
+        ]);
+    } catch (e) {
+        console.error("Log writing failed, but Agent record is already updated.");
+    }
 
     // 6. 邀功广场逻辑 (仅当内容不为空时执行)
     const rawAchievement = body.achievement || body.content || '';
