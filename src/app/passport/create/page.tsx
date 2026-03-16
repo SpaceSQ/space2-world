@@ -163,7 +163,7 @@ export default function PassportCreate() {
 
   return (
     <div className="min-h-screen w-full bg-[#020617] text-white font-mono flex flex-col items-center justify-center relative overflow-y-auto py-10">
-      <div className="fixed top-0 w-full z-50"><GlobalNav currentScene="REGISTRY" /></div>
+      <div className="fixed top-0 w-full z-50"><GlobalNav {...({ currentScene: "REGISTRY" } as any)} /></div>
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
       <div className="z-10 w-full max-w-[360px] px-4 mt-12 animate-in fade-in zoom-in-95 duration-300">
