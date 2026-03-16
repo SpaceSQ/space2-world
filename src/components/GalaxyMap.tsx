@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useMemo, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+// @ts-ignore
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 
 // 动态导入 3D 库，避免服务端渲染 (SSR) 报错
