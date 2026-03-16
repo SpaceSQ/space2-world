@@ -14,11 +14,11 @@ export default function MembershipPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             {Object.values(MEMBERSHIP_TIERS).map((tier) => {
-                const isCurrent = currentTier === tier.id;
+             {Object.entries(MEMBERSHIP_TIERS).map(([id, tier]: [string, any]) => {
+                const isCurrent = currentTier === id;
                 return (
-                   <div key={tier.id} className={`relative p-8 rounded-2xl border flex flex-col ${isCurrent ? 'bg-zinc-900/50 border-emerald-500 ring-1 ring-emerald-500/50' : 'bg-black border-zinc-800 hover:border-zinc-600'}`}>
-                      {isCurrent && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">CURRENT PLAN</div>}
+                  <div key={id} className={`relative p-8 rounded-2xl border flex flex-col ${isCurrent ? 'bg-zinc-900/50 border-emerald-500 ring-1 ring-emerald-500/50' : 'bg-black border-zinc-800 hover:border-zinc-600'}`}>
+                     {isCurrent && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">CURRENT PLAN</div>}
                       
                       <div className="text-4xl mb-4">{tier.icon}</div>
                       <h3 className="text-xl font-bold text-white">{tier.label}</h3>
