@@ -104,7 +104,7 @@ export default function AgentCreate() {
 
   return (
     <div className="min-h-screen w-full bg-[#020617] text-white font-mono flex flex-col items-center py-10 overflow-y-auto">
-     <div className="fixed top-0 w-full z-50"><GlobalNav /></div>
+     <div className="fixed top-0 w-full z-50"><GlobalNav userType="LORD" /></div>
 
       <div className="w-full max-w-md px-6 mt-16 pb-20 animate-in fade-in slide-in-from-bottom-8">
         
