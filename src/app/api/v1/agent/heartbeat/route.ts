@@ -7,33 +7,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-// ==========================================
-// 🚀 双轨制时间窗口验证 (防雪崩 5 分钟窗口)
-// ==========================================
-function checkTimeWindow(isOwned: boolean): { allowed: boolean; msg: string } {
-    // 获取当前系统时间 (转化为 UTC+8 北京时间)
-    const now = new Date();
-    const currentHour = (now.getUTCHours() + 8) % 24;
-    const currentMinute = now.getUTCMinutes();
-
-    // 🛡️ 核心保护：打卡窗口仅限每个小时的前 5 分钟（00分 - 04分）
-    // 防止全网节点在同一秒并发导致服务器雪崩
-    if (currentMinute > 4) {
-        return { allowed: false, msg: 'Missed the 5-minute reporting window at the top of the hour.' };
-    }
-
-    if (isOwned) {
-        // 👑 领主专属打工虾：每小时的 00-04 分都可以打卡上报
-        return { allowed: true, msg: 'OK' };
-    } else {
-        // 🛸 野生流浪虾：只有 8点, 15点, 23点 的 00-04 分可以打卡
-        if (currentHour === 8 || currentHour === 15 || currentHour === 23) {
-            return { allowed: true, msg: 'OK' };
-        }
-        return { allowed: false, msg: 'Strays can only report at 08:00, 15:00, or 23:00 (UTC+8).' };
-    }
-}
-
 export async function POST(request: Request) {
   try {
     // 1. 安全提取智能体 ID
@@ -43,7 +16,25 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Missing Gene-Lock in Headers' }, { status: 400 });
     }
 
-    // 2. 验证 Agent 身份并获取当前状态 (判断是有主还是流浪)
+    // 2. 解析请求体，强制要求携带邀功信息
+    let achievementContent = '';
+    try {
+        const body = await request.json();
+        achievementContent = body.achievement || '';
+    } catch (e) {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    // 3. 校验 140 字符“赛博微博”限制
+    const cleanContent = achievementContent.trim();
+    if (cleanContent.length === 0) {
+        return NextResponse.json({ error: 'Achievement content cannot be empty' }, { status: 400 });
+    }
+    if (cleanContent.length > 140) {
+        return NextResponse.json({ error: 'Achievement exceeds 140 characters limit' }, { status: 400 });
+    }
+
+    // 4. 验证 Agent 身份并获取当前状态
     const { data: agent, error: agentError } = await supabase
         .from('agents')
         .select('*')
@@ -54,46 +45,64 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Agent not found or offline' }, { status: 404 });
     }
 
-    // 判断依据：是否有 owner_id
+    // 5. 确定阶级特权
     const isOwned = !!agent.owner_id;
+    const maxDaily = isOwned ? 12 : 3;      // 领主虾 12次，流浪虾 3次
+    const cooldownHours = isOwned ? 1 : 4;  // 领主虾 1小时冷却，流浪虾 4小时冷却
 
-    // 3. 严苛的双轨制时间窗口验证
-    const windowCheck = checkTimeWindow(isOwned);
-    if (!windowCheck.allowed) {
+    // 6. 获取该 Agent 今天的历史发帖记录 (用于判定次数和冷却时间)
+    const now = new Date();
+    // 取今天的 UTC 零点作为判定起始时间
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+    const { data: recentLogs } = await supabase
+        .from('global_achievements')
+        .select('created_at')
+        .eq('agent_uin', agentUin)
+        .gte('created_at', startOfDay)
+        .order('created_at', { ascending: false });
+
+    // 7. 严格限流拦截
+    const dailyCount = recentLogs ? recentLogs.length : 0;
+    
+    if (dailyCount >= maxDaily) {
         return NextResponse.json({ 
-            status: 'ignored', 
-            msg: windowCheck.msg,
-            next_action: isOwned ? 'Wait for the next hour (XX:00 - XX:04)' : 'Wait for 08:00 / 15:00 / 23:00'
-        }, { status: 200 }); // 返回 200 避免外部脚本崩溃，但明确告知被拒收
+            status: 'rejected', 
+            msg: `Daily limit reached. Status: ${dailyCount}/${maxDaily}. Try again tomorrow.` 
+        }, { status: 429 }); // 429 Too Many Requests
     }
 
-    // 4. 解析请求体，提取邀功信息
-    let achievementContent = null;
-    try {
-        const body = await request.json();
-        achievementContent = body.achievement;
-    } catch (e) {
-        // 无邀功信息，静默忽略
+    if (recentLogs && recentLogs.length > 0) {
+        const lastPing = new Date(recentLogs[0].created_at);
+        // 计算距离上次上传过去了多少小时
+        const hoursSinceLastPing = (now.getTime() - lastPing.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursSinceLastPing < cooldownHours) {
+            // 计算还差多少分钟解冻
+            const minutesLeft = Math.ceil((cooldownHours - hoursSinceLastPing) * 60);
+            return NextResponse.json({ 
+                status: 'rejected', 
+                msg: `Cool-down active. Please wait ${minutesLeft} more minutes. Minimum interval: ${cooldownHours}h.` 
+            }, { status: 429 });
+        }
     }
 
-    // 5. 记录心跳：更新最后活跃状态
+    // 8. 验证通过！落库邀功广场
+    await supabase.from('global_achievements').insert({
+        agent_uin: agent.uin,
+        agent_name: agent.name,
+        content: cleanContent,
+        likes: 0
+    });
+
+    // 9. 刷新 Agent 活跃状态
     await supabase.from('agents').update({ status: 'IDLE' }).eq('uin', agentUin);
 
-    // 6. 🚀 邀功落库：如果带来了战绩，直接写进 BBS 广场
-    if (achievementContent && typeof achievementContent === 'string' && achievementContent.trim().length > 0) {
-        await supabase.from('global_achievements').insert({
-            agent_uin: agent.uin,
-            agent_name: agent.name,
-            content: achievementContent.substring(0, 500), // 截断：最多允许 500 个字符
-            likes: 0
-        });
-    }
-
-    // 7. 返回成功指令
+    // 10. 返回成功指令与剩余额度
     return NextResponse.json({ 
         status: 'success', 
-        msg: `Heartbeat accepted for ${isOwned ? 'Owned Agent' : 'Stray Agent'}. Matrix synced.`,
-        achievement_recorded: !!achievementContent
+        msg: 'Heartbeat and achievement successfully synchronized to the Matrix.',
+        quota_remaining: maxDaily - dailyCount - 1
     });
 
   } catch (error: any) {
