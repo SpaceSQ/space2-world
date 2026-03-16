@@ -63,12 +63,12 @@ export default function FleetManagement() {
              <div className="transform scale-110">
                 {/* @ts-ignore */}
                 <FloorPlanGrid 
-                   owner={{ ...owner, name: 'LORD COMMANDER' }}
-                   agents={agents as any}
-                   occupancy={occupancy}
-                   isViewerOwner={true}
-                   isPublicSpace={false} // 私有领地，非虚影模式
-                />
+                    owner={{ ...owner, name: 'LORD COMMANDER' }}
+                    agents={agents as any}
+                    occupancy={occupancy}
+                    isViewerOwner={true}
+                    isPublicSpace={false} // 私有领地，非虚影模式
+                 />
              </div>
           )}
           
