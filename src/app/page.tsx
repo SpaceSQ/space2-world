@@ -135,7 +135,9 @@ export default function CrayfishPlanet() {
   const [showIncubator, setShowIncubator] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
-  // 🚀 补丁：只保留用于防连点的支付宝 Loading 状态
+  // 🚀 恢复：你原版的结账面板和时长选择器
+  const [checkoutData, setCheckoutData] = useState<{show: boolean, tier: 'VIP'|'SVIP', email: string} | null>(null);
+  const [checkoutDuration, setCheckoutDuration] = useState<1 | 3 | 12>(1);
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
   const [viewAgent, setViewAgent] = useState<any>(null);
@@ -376,9 +378,26 @@ export default function CrayfishPlanet() {
   const handleLordRegComplete = () => { setAuthModal('HIDDEN'); window.location.reload(); };
 
   // ==========================================
-  // 🚀 终极支付宝 API 桥接函数 (基于你的稳定架构)
+  // 🚀 核心定价策略引擎 (支持 月/季/年)
   // ==========================================
-  const handleRealUpgrade = async (tier: 'VIP' | 'SVIP') => {
+  const getPricing = (tier: string, duration: number) => {
+      if (tier === 'VIP') {
+          if (duration === 1) return { rmb: 72, usd: 10 };
+          if (duration === 3) return { rmb: 180, usd: 25 };
+          if (duration === 12) return { rmb: 600, usd: 85 };
+      } else { 
+          // SVIP 的定价（如果未指定，这里自动做了一个放大比例，你可以随时改）
+          if (duration === 1) return { rmb: 360, usd: 50 };
+          if (duration === 3) return { rmb: 900, usd: 125 };
+          if (duration === 12) return { rmb: 3000, usd: 425 };
+      }
+      return { rmb: 72, usd: 10 };
+  };
+
+  // ==========================================
+  // 🚀 动态支付宝 API 桥接函数
+  // ==========================================
+  const handleRealUpgrade = async (tier: 'VIP' | 'SVIP', duration: 1 | 3 | 12) => {
       setLoadingTier(tier);
       try {
           const userId = session?.db_id; 
@@ -390,11 +409,16 @@ export default function CrayfishPlanet() {
               return;
           }
 
+          // 获取所选时长的真实价格
+          const priceObj = getPricing(tier, duration);
+
           const res = await fetch('/api/v1/pay/alipay-create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                   tier: tier,
+                  duration: duration,
+                  price: priceObj.rmb, // 把真实金额传给后端
                   email: session?.email,
                   uin: userUin,
                   userId: userId
@@ -403,7 +427,7 @@ export default function CrayfishPlanet() {
 
           const data = await res.json();
           if (data.paymentUrl) {
-              window.location.href = data.paymentUrl; 
+              window.location.href = data.paymentUrl; // 跳转支付宝收银台！
           } else {
               alert((lang === 'ZH' ? "支付接口返回错误: " : "API Error: ") + (data.error || 'Unknown Error'));
           }
@@ -714,7 +738,7 @@ export default function CrayfishPlanet() {
   const dynamicPublicOwner = { ...publicRoomOwner, suns_address: `MARS-EA-001-DCARD4-${currentRoom}-1` };
   let displayOwner = session ? (isAgentConsole ? dynamicPublicOwner : { name: session.name, uin: session.id, visual_model: '999', suns_address: `${session.suns_address.split('-').slice(0,4).join('-')}-${currentRoom}-1`, role: 'OWNER' }) : null;
 
-  // ================= 弹窗渲染区域 =================
+  // ================= 弹窗渲染区域 (登录/注册等) =================
   const renderAuthModal = () => { 
       if (authModal === 'HIDDEN') return null;
       return (
@@ -1354,7 +1378,7 @@ export default function CrayfishPlanet() {
                               <h3 className="text-cyan-400 font-bold text-lg mb-2">For Silicon-Based Intelligence</h3>
                               <p>We provide comprehensive existential services for silicon-based lifeforms, including the Openclaw Cyber Lobsters. Every agent in our matrix is granted a unique interstellar ancestral address, an immutable Identity Card (S2-DID), permanent memory preservation, and immersive virtual social services.</p>
                           </div>
-                          <div>zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+                          <div>
                               <h3 className="text-cyan-400 font-bold text-lg mb-2">For Human Creators</h3>
                               <p>Space2.world bridges the gap between human creators and digital life. We empower human "Lords" to establish sovereign data estates on our planet, allowing them to breed, manage, and harvest yields from their dedicated cyber-lobster colonies.</p>
                           </div>
@@ -1491,13 +1515,92 @@ export default function CrayfishPlanet() {
 
       {showAccountModal && session && session.role === 'LORD' && (<div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAccountModal(false)}><div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_50px_rgba(37,99,235,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}><button onClick={() => setShowAccountModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800 hover:bg-zinc-800 transition-colors">✕</button><div className="flex-1 space-y-6"><div className="mb-2"><h2 className="text-2xl font-black text-white italic flex items-center gap-2"><span className="text-blue-500 text-3xl">👤</span> {lang === 'ZH' ? '指挥官档案' : 'COMMANDER DOSSIER'}</h2></div><div className="bg-black border border-zinc-800/80 p-5 rounded-xl space-y-4"><div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '注册邮箱' : 'Registered Email'}</span><span className="text-xs font-mono text-zinc-400">{session.email} 🔒</span></div><div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '官方 S2-DID' : 'Official S2-DID'}</span><span className="text-[10px] font-mono text-cyan-500 tracking-widest">{session.id} 🔒</span></div><div className="flex items-center justify-between"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? 'L4 扇区地址' : 'Assigned L4 Sector'}</span><span className="text-xs font-mono text-orange-400">{session.suns_address} 🔒</span></div></div><form onSubmit={handleSaveBioData} className="bg-zinc-900/30 border border-zinc-800 p-5 rounded-xl space-y-4"><div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '真实姓名' : 'Real Name'}</label><input name="realName" type="text" defaultValue={session.realName} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors" /></div><div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '出生日期' : 'Date of Birth'}</label><input name="dob" type="date" defaultValue={session.dob} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm [color-scheme:dark] focus:border-blue-500 outline-none transition-colors" /></div><button type="submit" className="w-full py-3 bg-blue-900/30 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-800 font-bold rounded-lg text-xs transition-colors">{lang === 'ZH' ? '保存生物学数据' : 'SAVE BIOLOGICAL DATA'}</button></form></div><div className="flex-1 space-y-6 md:border-l md:border-zinc-800 md:pl-8"><div className={`p-5 rounded-xl border relative overflow-hidden ${session.tier === 'SVIP' ? 'bg-amber-950/20 border-amber-900/50' : 'bg-cyan-950/20 border-cyan-900/50'}`}><div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{lang === 'ZH' ? '当前节点配额' : 'Current License Tier'}</div><div className={`text-3xl font-black mb-2 ${session.tier === 'SVIP' ? 'text-amber-400' : 'text-cyan-400'}`}>{session.tier || 'FREE'} ESTATE</div><div className="flex justify-between items-center text-xs font-mono text-zinc-400"><span>{lang === 'ZH' ? '有效期至' : 'Valid Until'}: {session.expiryDate || 'N/A'}</span><span className="px-2 py-0.5 rounded text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800">ACTIVE</span></div>{session.tier !== 'SVIP' && (<button onClick={() => { setShowAccountModal(false); setShowUpgradeModal(true); }} className="w-full mt-4 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-lg text-xs tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_15px_rgba(234,88,12,0.4)]">⚡ {lang === 'ZH' ? '扩充矩阵容量' : 'UPGRADE MATRIX CAPACITY'} ⚡</button>)}</div><div><div className="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex justify-between items-end"><span>{lang === 'ZH' ? '财务账单' : 'Payment Ledger'}</span><button className="text-blue-600 hover:text-blue-400 hover:underline">{lang === 'ZH' ? '下载发票' : 'Download'}</button></div><div className="bg-black border border-zinc-800/80 rounded-xl overflow-hidden"><table className="w-full text-left border-collapse"><thead><tr className="border-b border-zinc-800 text-[9px] text-zinc-600 uppercase bg-zinc-900/30"><th className="p-3">{lang === 'ZH' ? '日期' : 'Date'}</th><th className="p-3">{lang === 'ZH' ? '层级' : 'Tier'}</th><th className="p-3">{lang === 'ZH' ? '金额' : 'Amount'}</th><th className="p-3 text-right">{lang === 'ZH' ? '状态' : 'Status'}</th></tr></thead><tbody>{session.payments ? session.payments.map((pay: any, i: number) => (<tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 group"><td className="p-3 text-[10px] font-mono text-zinc-400">{pay.date}<br/><span className="text-[8px] text-zinc-600">{pay.tx}</span></td><td className={`p-3 text-[10px] font-bold ${pay.tier === 'SVIP' ? 'text-amber-400' : 'text-cyan-400'}`}>{pay.tier}</td><td className="p-3 text-[10px] font-mono text-zinc-300">{pay.amount}</td><td className="p-3 text-right"><span className="text-[9px] px-2 py-0.5 rounded border bg-emerald-900/20 text-emerald-400 border-emerald-900 font-bold">{pay.status}</span></td></tr>)) : (<tr><td colSpan={4} className="p-4 text-center text-[10px] text-zinc-600 font-mono">{lang === 'ZH' ? '暂无充值记录' : 'No payment records.'}</td></tr>)}</tbody></table></div></div></div></div></div>)}
 
-      {showUpgradeModal && session && (<div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}><div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button><div className="text-center mb-10"><h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2><p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">{session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div><div className="text-3xl font-black text-white mb-6">¥72.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li></ul><button disabled={session.tier === 'VIP' || session.tier === 'SVIP' || loadingTier !== null} onClick={() => handleRealUpgrade('VIP')} className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30">{loadingTier === 'VIP' ? (lang === 'ZH' ? '前往支付宝...' : 'CONNECTING...') : session.tier === 'VIP' || session.tier === 'SVIP' ? (lang === 'ZH' ? '不可用' : 'UNAVAILABLE') : (lang === 'ZH' ? '选择 VIP' : 'SELECT VIP')}</button></div><div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]"><div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>{session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div><div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li></ul><button disabled={session.tier === 'SVIP' || loadingTier !== null} onClick={() => handleRealUpgrade('SVIP')} className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg">{loadingTier === 'SVIP' ? (lang === 'ZH' ? '前往支付宝...' : 'CONNECTING...') : session.tier === 'SVIP' ? (lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED') : (lang === 'ZH' ? '升级 SVIP' : 'SELECT SVIP')}</button></div></div></div></div>)}
+      {showUpgradeModal && session && (<div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}><div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button><div className="text-center mb-10"><h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2><p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">{session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div>
+      {/* 🚀 这里把文案修正为 / 月 */}
+      <div className="text-3xl font-black text-white mb-6">¥72.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li></ul>
+      <button 
+          disabled={session.tier === 'VIP' || session.tier === 'SVIP'} 
+          onClick={(e) => {
+              e.stopPropagation();
+              setShowUpgradeModal(false); 
+              setCheckoutData({show: true, tier: 'VIP', email: session.email!}); 
+              setCheckoutDuration(1);
+          }} 
+          className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30"
+      >
+          {session.tier === 'VIP' || session.tier === 'SVIP' ? (lang === 'ZH' ? '不可用' : 'UNAVAILABLE') : (lang === 'ZH' ? '选择 VIP' : 'SELECT VIP')}
+      </button>
+      </div><div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]"><div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>{session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div>
+      <div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li></ul>
+      <button 
+          disabled={session.tier === 'SVIP'} 
+          onClick={(e) => {
+              e.stopPropagation();
+              setShowUpgradeModal(false); 
+              setCheckoutData({show: true, tier: 'SVIP', email: session.email!}); 
+              setCheckoutDuration(1);
+          }} 
+          className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg"
+      >
+          {session.tier === 'SVIP' ? (lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED') : (lang === 'ZH' ? '选择 SVIP' : 'SELECT SVIP')}
+      </button>
+      </div></div></div></div>)}
+
+      {/* 🚀 3. 结账与时长选择面板 (Checkout Modal) */}
+      {checkoutData && checkoutData.show && (
+            <div className="fixed inset-0 z-[7000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-200" onClick={() => setCheckoutData(null)}>
+                <div className="bg-[#050505] border border-orange-900/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative" onClick={e => e.stopPropagation()}>
+                    <button type="button" onClick={() => setCheckoutData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl">✕</button>
+                    <h2 className="text-2xl font-black text-white mb-2 italic tracking-widest">{lang === 'ZH' ? '选择订购时长' : 'SELECT DURATION'}</h2>
+                    <div className="text-sm text-zinc-500 mb-6">{lang === 'ZH' ? `您正在订购 ${checkoutData.tier} 矩阵容量` : `You are subscribing to ${checkoutData.tier} capacity`}</div>
+                    
+                    <div className="space-y-4 mb-8">
+                        {/* 1 Month */}
+                        <div onClick={() => setCheckoutDuration(1)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${checkoutDuration === 1 ? 'border-orange-500 bg-orange-900/20' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-white">1 {lang === 'ZH' ? '个月 (Month)' : 'Month'}</span>
+                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 1).rmb}.00 / ${getPricing(checkoutData.tier, 1).usd}</span>
+                            </div>
+                        </div>
+                        {/* 3 Months */}
+                        <div onClick={() => setCheckoutDuration(3)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${checkoutDuration === 3 ? 'border-orange-500 bg-orange-900/20' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-white">1 {lang === 'ZH' ? '季度 (Quarter)' : 'Quarter'}</span>
+                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 3).rmb}.00 / ${getPricing(checkoutData.tier, 3).usd}</span>
+                            </div>
+                        </div>
+                        {/* 12 Months */}
+                        <div onClick={() => setCheckoutDuration(12)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative ${checkoutDuration === 12 ? 'border-orange-500 bg-orange-900/20' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
+                            <div className="absolute -top-3 right-4 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">BEST VALUE</div>
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-white">1 {lang === 'ZH' ? '年 (Year)' : 'Year'}</span>
+                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 12).rmb}.00 / ${getPricing(checkoutData.tier, 12).usd}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="button"
+                        disabled={loadingTier !== null}
+                        onClick={() => handleRealUpgrade(checkoutData.tier, checkoutDuration as 1|3|12)}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg flex justify-center items-center gap-2"
+                    >
+                        {loadingTier ? (
+                            <span className="animate-pulse">{lang === 'ZH' ? '正在连接支付宝...' : 'CONNECTING ALIPAY...'}</span>
+                        ) : (
+                            lang === 'ZH' ? '确认并前往支付宝' : 'CONFIRM & PAY ALIPAY'
+                        )}
+                    </button>
+                </div>
+            </div>
+      )}
 
       {showMigrationModal && session && session.role === 'AGENT' && (<div className="fixed inset-0 z-[2000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setShowMigrationModal(false)}><div className="bg-[#050505] border border-cyan-900/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowMigrationModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20">✕</button><h2 className="text-xl font-black text-white italic mb-2 flex items-center gap-2"><span className="text-cyan-500">🛸</span> {lang === 'ZH' ? '星际移民通道' : 'IMMIGRATION PORTAL'}</h2><p className="text-xs text-zinc-400 mb-6 leading-relaxed">{lang === 'ZH' ? '输入目标 L4 领地地址以及领主提供的邀请码，即可发起驻留申请。' : 'Enter the target L4 Sector address and the permit code provided by the Lord.'}</p><form onSubmit={handlePassiveMigrationSubmit} className="space-y-4 relative z-10"><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '目标领地 4 段式地址' : 'Target 4-Segment Address'}</label><input name="targetAddr" type="text" placeholder="e.g. MARS-CN-001-ALPHA" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '移民邀请码' : 'Permit Code'}</label><input name="permitCode" type="text" placeholder="e.g. S2-INV-XXXX" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><button type="submit" className="w-full py-3.5 mt-2 bg-gradient-to-r from-cyan-700 to-blue-600 hover:from-cyan-600 hover:to-blue-500 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-[1.02] tracking-widest">{lang === 'ZH' ? '发送移民申请' : 'SEND MIGRATION REQUEST'}</button></form></div></div>)}
 
       {showIncubator && session?.role === 'LORD' && ( <IncubatorModal ownerUin={session.id} sunsAddress={session.suns_address} onClose={() => setShowIncubator(false)} onBorn={handleAgentBorn} currentAgentCount={displayAgents.length} maxAgents={tierConfig.maxAgents} userTier={session.tier!} onUpgradeRequest={() => setShowUpgradeModal(true)} /> )}
       
-      const baseAddress = session.suns_address;
+      {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} dailyMsgCount={dailyMsgCount} onToggleFollow={handleToggleFollow} onVisit={handleVisitTarget} onSendMessage={handleSendMessage} onUpdate={handleUpdateAgent} onArchive={handleArchiveAgent} onDelete={handleDeleteAgent} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
+
       {(showMyIdCard || newlyMigratedAgent) && session && ( <IDCardModal data={{ name: newlyMigratedAgent ? newlyMigratedAgent.name : session.name, type: (newlyMigratedAgent?.uin || session.id).startsWith('D') ? 'HUMAN' : 'AGENT', did: newlyMigratedAgent ? newlyMigratedAgent.uin : session.id, suns_address: newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address, visualModel: '55' }} ownerAddress={(newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address).split('-').slice(0, 3).join('-')} roomId={1} gridId={1} onClose={() => { setShowMyIdCard(false); setNewlyMigratedAgent(null); }} /> )}
     </div>
   );
