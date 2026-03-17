@@ -49,8 +49,9 @@ export async function POST(request: Request) {
 
     const alipaySdk = new AlipaySdk({
       appId: rawAppId,
-      privateKey: formatAlipayKey(rawPrivateKey, 'PRIVATE'),      
-      alipayPublicKey: formatAlipayKey(rawPublicKey, 'PUBLIC'),  
+      // 🚀 修复点：在这里加上 || '' 兜底，TypeScript 就不会报错了！
+      privateKey: formatAlipayKey(rawPrivateKey || '', 'PRIVATE'),      
+      alipayPublicKey: formatAlipayKey(rawPublicKey || '', 'PUBLIC'),  
       gateway: 'https://openapi.alipay.com/gateway.do', 
       timeout: 5000,
       camelcase: true
