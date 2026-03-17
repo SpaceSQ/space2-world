@@ -2,15 +2,20 @@ import { NextResponse } from 'next/server';
 import { AlipaySdk } from 'alipay-sdk';
 import { createClient } from '@supabase/supabase-js';
 
+// 初始化上帝权限的 Supabase
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(request: Request) {
   try {
-    // 1. 支付宝的 Webhook 传过来的是 Form 数据，我们需要解析它
+    // 1. 获取支付宝发来的异步通知数据
     const formData = await request.formData();
     const params = Object.fromEntries(formData.entries());
 
-    console.log('\n🔔 [WEBHOOK] 收到支付宝异步通知：', params.out_trade_no);
+    console.log('\n🔔 [WEBHOOK] 收到支付宝异步通知，单号：', params.out_trade_no);
 
-    // 2. 初始化支付宝 SDK（仅用于验证签名）
     const alipaySdk = new AlipaySdk({
       appId: process.env.ALIPAY_APP_ID || '',
       privateKey: process.env.ALIPAY_PRIVATE_KEY || '',
@@ -18,59 +23,54 @@ export async function POST(request: Request) {
       camelcase: true,
     });
 
-    // 3. 🚨 极度重要：验证签名！防止黑客伪造支付成功请求给你刷钻！
+    // 2. 验签：确认真的是支付宝发来的，不是黑客伪造的
     const isValid = alipaySdk.checkNotifySign(params);
     if (!isValid) {
-      console.error('❌ [WEBHOOK] 签名验证失败！这可能是伪造的请求！');
+      console.error('❌ [WEBHOOK] 签名验证失败！');
       return new NextResponse('failure', { status: 400 });
     }
 
-    // 4. 检查支付状态，只有 TRADE_SUCCESS（支付成功）才发货
+    // 3. 只处理支付成功的状态
     const tradeStatus = params['trade_status'];
     if (tradeStatus !== 'TRADE_SUCCESS' && tradeStatus !== 'TRADE_FINISHED') {
-      return new NextResponse('success'); // 其他状态（如交易创建）直接回复成功，不作处理
+      return new NextResponse('success'); 
     }
 
-    // 5. 提取订单信息（我们在上一版写的单号格式是：ORDER_时间戳_UIN）
-    const outTradeNo = params['out_trade_no'] as string;
-    const totalAmount = params['total_amount'];
-    
-    // 拆解订单号拿到用户的 ID (UIN)
-    const parts = outTradeNo.split('_');
-    const uin = parts[2]; 
-
-    // 利用价格反推他买的是什么版本（防止恶意篡改）
-    const tier = totalAmount === '72.00' ? 'VIP' : (totalAmount === '360.00' ? 'SVIP' : null);
-
-    if (!uin || !tier) {
-        console.error('❌ [WEBHOOK] 无法从订单解析出 UIN 或 Tier:', outTradeNo, totalAmount);
-        return new NextResponse('success'); 
+    // 🚀 4. 打开支付宝退回来的“公文包” (passback_params)
+    const passbackStr = params['passback_params'] as string;
+    if (!passbackStr) {
+        console.error('❌ [WEBHOOK] 找不到公文包透传参数！');
+        return new NextResponse('success');
     }
 
-    // 6. 🚀 连上数据库，执行上帝视角的“发货”操作！
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { userId, tier, duration } = JSON.parse(decodeURIComponent(passbackStr));
+    console.log(`📦 [WEBHOOK] 解析公文包成功！准备为用户 ${userId} 升舱为 ${tier}！`);
 
-    // 假设你的 Supabase 里存用户的表名叫 users (如果叫 profiles，请把 'users' 改成 'profiles')
-    const { error } = await supabase
-      .from('users') 
-      .update({ tier: tier }) // 把他的等级改成 VIP / SVIP
-      .eq('id', uin);         // 匹配他的 UIN
+    // 5. 计算过期时间
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + (duration || 1));
 
-    if (error) {
-       console.error('❌ [WEBHOOK] 数据库更新失败:', error);
-       return new NextResponse('failure', { status: 500 });
+    // 🚀 6. 直接暴力升舱！更新 profiles 表
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+            tier: tier,
+            expiry_date: expiresAt.toISOString().split('T')[0] // 更新有效期
+        })
+        .eq('id', userId);
+
+    if (updateError) {
+        console.error('❌ [WEBHOOK] 数据库升舱失败:', updateError);
+        return new NextResponse('failure', { status: 500 });
     }
 
-    console.log(`✅ [WEBHOOK] 发货成功！已将用户 ${uin} 升级为 ${tier}！`);
+    console.log(`✅ [WEBHOOK] 发货大成功！用户 ${userId} 已成为尊贵的 ${tier}！`);
 
-    // 7. 🚨 必须且只能给支付宝回复纯文本的 "success"！
-    // 否则支付宝会以为你没收到，在接下来的 24 小时内疯狂给你重发！
+    // 🚨 7. 必须给支付宝回复文本 success，否则它会一直疯狂重发
     return new NextResponse('success');
 
   } catch (error: any) {
-    console.error('🚨 [WEBHOOK CRITICAL ERROR]:', error);
+    console.error('🚨 [WEBHOOK 严重崩溃]:', error);
     return new NextResponse('failure', { status: 500 });
   }
 }
