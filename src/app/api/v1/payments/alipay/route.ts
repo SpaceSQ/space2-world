@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         supabaseServiceKey || ''
     );
 
-    const amount = price || (tier === 'VIP' ? 72.00 : 360.00);
+    const amount = price || (tier === 'VIP' ? 1.80 : 360.00);
     if (!amount) return NextResponse.json({ error: 'Invalid Amount' }, { status: 400 });
 
     const outTradeNo = 'ORDER_' + Date.now() + '_' + uin.slice(-6);
