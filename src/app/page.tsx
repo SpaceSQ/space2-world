@@ -948,6 +948,17 @@ export default function CrayfishPlanet() {
          <div className="absolute top-0 right-0 w-full h-[500px] bg-cyan-900/20 blur-[150px]"></div>
       </div>
 
+return (
+    <div className="min-h-screen bg-[#020408] text-white font-sans selection:bg-orange-500/30 overflow-x-hidden relative flex flex-col">
+      <div className="fixed inset-0 z-0 pointer-events-none">
+         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+         <div className="absolute bottom-0 left-0 w-full h-[500px] bg-orange-600/10 blur-[150px]"></div>
+         <div className="absolute top-0 right-0 w-full h-[500px] bg-cyan-900/20 blur-[150px]"></div>
+      </div>
+
+      {/* 🚀 把登录弹窗放在全站最高、最前面的位置！绝对不受任何 session 判断的干扰！ */}
+      {renderAuthModal()}
+
       <nav className={`relative z-50 border-b border-zinc-800/50 bg-black/80 backdrop-blur-md flex items-center justify-between px-4 md:px-12 shrink-0 ${mode === 'CONSOLE' ? 'h-auto md:h-16 py-4 md:py-0 flex-col md:flex-row gap-4 md:gap-0' : 'h-16 md:h-20'}`}>
          <div className="flex items-center gap-3 md:gap-6 shrink-0">
             <a href="/" onClick={(e) => { e.preventDefault(); setMode(session ? 'CONSOLE' : 'LANDING'); }} className="flex items-center gap-3 group cursor-pointer">
