@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import { AlipaySdk } from 'alipay-sdk';
 import { createClient } from '@supabase/supabase-js';
 
+// 强制动态路由，防止 Vercel 把它当成静态文件缓存
+export const dynamic = 'force-dynamic';
+
+// 🚀 探测雷达：允许通过浏览器直接访问来测试它死没死
+export async function GET() {
+    return new NextResponse("Webhook endpoint is alive and reachable!");
+}
+
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -9,10 +17,12 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
+    console.log('[WEBHOOK] POST Request received!');
+    
     const formData = await request.formData();
     const params = Object.fromEntries(formData.entries());
 
-    console.log('Webhook received for trade no: ', params.out_trade_no);
+    console.log('[WEBHOOK] Trade No:', params.out_trade_no);
 
     const alipaySdk = new AlipaySdk({
       appId: process.env.ALIPAY_APP_ID || '',
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
     // 1. Verify Signature
     const isValid = alipaySdk.checkNotifySign(params);
     if (!isValid) {
-      console.error('Signature verification failed');
+      console.error('[WEBHOOK] Signature verification failed');
       return new NextResponse('failure', { status: 400 });
     }
 
@@ -36,7 +46,7 @@ export async function POST(request: Request) {
 
     const outTradeNo = params.out_trade_no as string;
 
-    // 3. Check order in DB to prevent duplicate processing
+    // 3. Check order in DB
     const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -44,19 +54,19 @@ export async function POST(request: Request) {
         .single();
 
     if (orderError || !orderData) {
-        console.error('Order not found in DB: ', outTradeNo);
+        console.error('[WEBHOOK] Order not found in DB:', outTradeNo);
         return new NextResponse('success'); 
     }
 
     if (orderData.status === 'PAID') {
-        console.log('Order already processed: ', outTradeNo);
+        console.log('[WEBHOOK] Order already PAID:', outTradeNo);
         return new NextResponse('success');
     }
 
     // 4. Parse passback params
     const passbackStr = params['passback_params'] as string;
     if (!passbackStr) {
-        console.error('Missing passback parameters');
+        console.error('[WEBHOOK] Missing passback parameters');
         return new NextResponse('success');
     }
 
@@ -80,13 +90,11 @@ export async function POST(request: Request) {
     await supabase.from('profiles').update({ tier: tier, expiry_date: finalExpiryStr }).eq('id', userId);
     await supabase.from('orders').update({ status: 'PAID', trade_no: params.trade_no }).eq('out_trade_no', outTradeNo);
 
-    console.log('Webhook processed successfully for user: ', userId);
-
-    // MUST return pure "success" to Alipay
+    console.log('[WEBHOOK] Success! User upgraded:', userId);
     return new NextResponse('success');
 
   } catch (error: any) {
-    console.error('Webhook Error:', error);
+    console.error('[WEBHOOK] Error:', error);
     return new NextResponse('failure', { status: 500 });
   }
 }
