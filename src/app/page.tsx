@@ -211,7 +211,7 @@ export default function CrayfishPlanet() {
               const { data: profile } = await supabase.from('profiles').select('*').eq('id', currentSession.user.id).single();
               
               if (profile && isMounted) {
-setSession({ isLoggedIn: true, db_id: profile.id, role: profile.role as Role, id: profile.uin, name: profile.name, suns_address: profile.suns_address, tier: profile.tier, email: currentSession.user.email, realName: profile.real_name, dob: profile.dob, expiryDate: profile.expiry_date, visual_model: profile.visual_model, payments: profile.payments || [] });
+      setSession({ isLoggedIn: true, db_id: profile.id, role: profile.role as Role, id: profile.uin, name: profile.name, suns_address: profile.suns_address, tier: profile.tier, email: currentSession.user.email, realName: profile.real_name, dob: profile.dob, expiryDate: profile.expiry_date, visual_model: profile.visual_model, payments: profile.payments || [] });
                   await fetchSocialGraph(profile.uin);
 
                   if (profile.role === 'LORD') {
