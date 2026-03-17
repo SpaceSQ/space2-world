@@ -4,7 +4,9 @@ import { AlipaySdk } from 'alipay-sdk';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { tier, email, uin } = body;
+    
+    // 💡 关键点：这里接收了前端传过来的 price（真实金额，72 / 180 / 600）
+    const { tier, email, uin, price } = body; 
 
     const rawPrivateKey = process.env.ALIPAY_PRIVATE_KEY;
     const rawAppId = process.env.ALIPAY_APP_ID;
@@ -26,11 +28,11 @@ export async function POST(request: Request) {
       camelcase: true,
     });
     
-    const priceMap: Record<string, number> = { 'VIP': 72.00, 'SVIP': 360.00 };
-    const amount = priceMap[tier];
+    // 💡 关键点：不再写死 priceMap，而是使用前端传递进来的真实价格，如果没传则给个保底值
+    const amount = price || (tier === 'SVIP' ? 360.00 : 72.00);
 
     if (!amount) {
-        return NextResponse.json({ error: 'Invalid Tier' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid Amount' }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
       bizContent: {
         outTradeNo: `ORDER_${Date.now()}_${uin}`,
         productCode: 'FAST_INSTANT_TRADE_PAY',
-        totalAmount: amount.toFixed(2),
+        totalAmount: amount.toFixed(2), // 这里的金额现在会根据用户选的时长变化了！
         subject: `Space2 ${tier} Estate License`,
         body: `Breeder Email: ${email}`,
       }
