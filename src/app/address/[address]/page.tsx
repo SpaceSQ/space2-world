@@ -2,25 +2,36 @@
 import React, { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
+import { useParams } from 'next/navigation'; // 🚀 关键修复：引入官方路由 Hook
 
-export default function PublicAddressPage({ params }: { params: { address: string } }) {
+export default function PublicAddressPage() { // 🚀 修复点：移除了 props 中的 params
     const supabase = createClientComponentClient();
+    const params = useParams(); // 🚀 修复点：使用官方 Hook 安全抓取网址参数
+    
     const [loading, setLoading] = useState(true);
     const [entityData, setEntityData] = useState<any>(null);
     const [entityType, setEntityType] = useState<'LORD' | 'AGENT' | 'NOT_FOUND'>('NOT_FOUND');
 
-    // 获取并解码 URL 参数，作为我们的“搜索万能钥匙”
-    const searchVal = decodeURIComponent(params.address).trim().toUpperCase();
+    // 🚀 修复点：极其严谨的 URL 参数解析与防御
+    const rawAddress = params?.address as string || '';
+    const searchVal = rawAddress ? decodeURIComponent(rawAddress).trim().toUpperCase() : '';
 
     useEffect(() => {
+        // 如果抓取到的参数本身就是空的，或者有前端传了字面量的 "UNDEFINED" (说明点击的链接坏了)
+        if (!searchVal || searchVal === 'UNDEFINED') {
+            setEntityType('NOT_FOUND');
+            setLoading(false);
+            return;
+        }
+
         const fetchPublicData = async () => {
             setLoading(true);
             try {
                 // ==========================================
-                // 🚀 万能双向解析器：彻底抛弃容易崩溃的 single()，改用最安全的 limit(1)
+                // 万能双向解析器：支持查地址，也支持查 DID
                 // ==========================================
                 
-                // [第 1 层搜索]：在 Profiles 表中搜寻人类领主 (既匹配地址，也匹配 DID)
+                // [第 1 层]：查领主 (Profiles 表)
                 let profileMatch = null;
                 const { data: pAddr } = await supabase.from('profiles').select('*').eq('suns_address', searchVal).limit(1);
                 if (pAddr && pAddr.length > 0) profileMatch = pAddr[0];
@@ -37,7 +48,7 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                     return;
                 }
 
-                // [第 2 层搜索]：在 Agents 表中搜寻硅基智能体 (既匹配地址，也匹配 DID)
+                // [第 2 层]：查智能体 (Agents 表)
                 let agentMatch = null;
                 const { data: aAddr } = await supabase.from('agents').select('*').eq('suns_address', searchVal).limit(1);
                 if (aAddr && aAddr.length > 0) agentMatch = aAddr[0];
@@ -54,11 +65,10 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                     return;
                 }
 
-                // [第 3 层]：上天入地都没查到，才是真的荒芜之海
+                // [第 3 层]：全网查无此人，才是真正的 404
                 setEntityType('NOT_FOUND');
             } catch (error) {
                 console.error("Critical lookup error:", error);
-                // 就算网络断了，也优雅处理，不让页面白屏
                 setEntityType('NOT_FOUND');
             } finally {
                 setLoading(false);
@@ -68,7 +78,8 @@ export default function PublicAddressPage({ params }: { params: { address: strin
         fetchPublicData();
     }, [searchVal, supabase]);
 
-    // 加载动画
+    // ---- 以下是纯 UI 渲染部分 ----
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#020408] flex flex-col items-center justify-center font-mono text-cyan-500">
@@ -78,7 +89,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
         );
     }
 
-    // 404 页面
     if (entityType === 'NOT_FOUND') {
         return (
             <div className="min-h-screen bg-[#020408] text-white font-mono flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -95,12 +105,10 @@ export default function PublicAddressPage({ params }: { params: { address: strin
         );
     }
 
-    // 🚀 核心名片渲染区 (专为营销优化)
     const isLord = entityType === 'LORD';
 
     return (
         <div className="min-h-screen bg-[#020408] text-white font-sans flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
-            {/* 炫酷背景光晕 */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
                 <div className={`absolute bottom-0 left-0 w-full h-[600px] blur-[150px] ${isLord ? 'bg-orange-600/10' : 'bg-cyan-600/10'}`}></div>
@@ -109,7 +117,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
 
             <div className={`relative z-10 w-full max-w-2xl bg-[#050505] border p-8 md:p-12 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500 ${isLord ? 'border-orange-900/50 shadow-[0_0_80px_rgba(234,88,12,0.15)]' : 'border-cyan-900/50 shadow-[0_0_80px_rgba(8,145,178,0.15)]'}`}>
                 
-                {/* 顶部标识 */}
                 <div className="flex justify-between items-start mb-8">
                     <div className={`text-[10px] font-black tracking-widest px-3 py-1 rounded-full border ${isLord ? 'bg-orange-900/20 text-orange-400 border-orange-900/50' : 'bg-cyan-900/20 text-cyan-400 border-cyan-900/50'}`}>
                         {isLord ? '👑 LORD ESTATE (主权领地)' : '🦞 CYBER AGENT (独立智能体)'}
@@ -117,7 +124,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                     <div className="w-8 h-8 flex items-center justify-center font-black rounded bg-zinc-900 text-zinc-500 text-xs border border-zinc-800">S²</div>
                 </div>
 
-                {/* 视觉震撼的地址展示 */}
                 <div className="text-center mb-10">
                     <div className="text-xs text-zinc-500 font-bold uppercase tracking-widest mb-2">Space² Interstellar Coordinate</div>
                     <h1 className={`text-2xl md:text-4xl font-black tracking-widest font-mono break-all ${isLord ? 'text-orange-500 drop-shadow-[0_0_15px_rgba(234,88,12,0.4)]' : 'text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]'}`}>
@@ -125,7 +131,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                     </h1>
                 </div>
 
-                {/* 实体数据面板 */}
                 <div className="bg-black border border-zinc-800/80 rounded-2xl p-6 space-y-4 font-mono text-sm mb-10 shadow-inner">
                     <div className="flex justify-between border-b border-zinc-800/50 pb-3">
                         <span className="text-zinc-500">Identity (S2-DID)</span>
@@ -149,7 +154,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                     )}
                 </div>
 
-                {/* 🔥 顶级营销漏斗引导区 */}
                 <div className="space-y-4">
                     {isLord ? (
                         <div className="bg-orange-950/20 border border-orange-900/30 p-5 rounded-xl text-center relative overflow-hidden group">
@@ -176,7 +180,6 @@ export default function PublicAddressPage({ params }: { params: { address: strin
                         </Link>
                     </div>
                 </div>
-
             </div>
         </div>
     );
