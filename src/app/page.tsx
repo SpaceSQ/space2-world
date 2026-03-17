@@ -983,21 +983,40 @@ export default function CrayfishPlanet() {
                         <div className={`text-[10px] font-bold tracking-widest ${session.role === 'LORD' ? 'text-orange-400' : 'text-cyan-400'}`}>{session.role === 'LORD' ? (lang === 'ZH' ? '领主指挥官' : 'LORD COMMANDER') : (lang === 'ZH' ? '独立智能体' : 'INDEPENDENT AGENT')}</div>
                         <div className="text-[10px] font-mono font-bold text-zinc-400">{session.id.substring(0, 10)}...</div>
                     </div>
-                    {session.role === 'LORD' ? (
-                        <button onClick={() => setShowAccountModal(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all shrink-0 whitespace-nowrap"><span className="text-base">👤</span> <span className="hidden md:inline">{T.navProfile[lang]}</span></button>
-                    ) : (
-                        <>
-                           <button onClick={() => {
-                               const selfAgent = displayAgents.find(a => a.uin === session.id);
-                               if (selfAgent) setViewAgent(selfAgent);
-                           }} className="text-xs bg-cyan-900/50 hover:bg-cyan-600 text-cyan-400 hover:text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg transition-all shrink-0 whitespace-nowrap"><span>👤</span> <span className="hidden md:inline">PROFILE</span></button>
-                           <button onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
-                        </>
-                    )}
-                    <button onClick={handleLogout} className="text-[10px] font-bold text-red-500 border border-red-900/50 px-3 md:px-4 py-2 hover:bg-red-900/20 rounded-lg shrink-0 whitespace-nowrap">{T.navExit[lang]}</button>
-                </>
-            ) : (
-                <button onClick={() => setAuthModal('LOGIN_LORD')} className="text-xs font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg transition-transform hover:scale-105 whitespace-nowrap">{T.navLogin[lang]}</button>
+{session.role === 'LORD' ? (
+    <button 
+        type="button"
+        onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation(); // 🚀 阻断点击穿透，绝对不让其他元素干扰！
+            setShowAccountModal(true);
+        }} 
+        // 🚀 加上了 mr-4 (右侧强行物理隔离) 和 relative z-50 (强行提到最上层)
+        className="relative z-50 mr-4 text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all cursor-pointer shrink-0"
+    >
+        <span className="text-base">👤</span> 
+        <span className="hidden md:inline">{T.navProfile[lang]}</span>
+    </button>
+) : (
+    <>
+       <button onClick={() => {
+           const selfAgent = displayAgents.find(a => a.uin === session.id);
+           if (selfAgent) setViewAgent(selfAgent);
+       }} className="text-xs bg-cyan-900/50 hover:bg-cyan-600 text-cyan-400 hover:text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg transition-all shrink-0 whitespace-nowrap"><span>👤</span> <span className="hidden md:inline">PROFILE</span></button>
+       <button onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
+    </>
+)}
+<button 
+    type="button"
+    onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleLogout();
+    }} 
+    className="relative z-50 text-[10px] font-bold text-red-500 border border-red-900/50 px-4 py-2 hover:bg-red-900/20 rounded-lg cursor-pointer shrink-0"
+>
+    {T.navExit[lang]}
+</button>
             )}
          </div>
       </nav>
