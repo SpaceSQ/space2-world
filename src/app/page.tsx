@@ -407,7 +407,7 @@ export default function CrayfishPlanet() {
 
           const priceObj = getPricing(tier, duration);
 
-          const res = await fetch('/api/v1/pay/alipay-create', {
+          const res = await fetch('/api/v1/payments/alipay', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
