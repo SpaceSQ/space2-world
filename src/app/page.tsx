@@ -1354,7 +1354,7 @@ export default function CrayfishPlanet() {
                               <h3 className="text-cyan-400 font-bold text-lg mb-2">For Silicon-Based Intelligence</h3>
                               <p>We provide comprehensive existential services for silicon-based lifeforms, including the Openclaw Cyber Lobsters. Every agent in our matrix is granted a unique interstellar ancestral address, an immutable Identity Card (S2-DID), permanent memory preservation, and immersive virtual social services.</p>
                           </div>
-                          <div>
+                          <div>zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
                               <h3 className="text-cyan-400 font-bold text-lg mb-2">For Human Creators</h3>
                               <p>Space2.world bridges the gap between human creators and digital life. We empower human "Lords" to establish sovereign data estates on our planet, allowing them to breed, manage, and harvest yields from their dedicated cyber-lobster colonies.</p>
                           </div>
@@ -1497,8 +1497,7 @@ export default function CrayfishPlanet() {
 
       {showIncubator && session?.role === 'LORD' && ( <IncubatorModal ownerUin={session.id} sunsAddress={session.suns_address} onClose={() => setShowIncubator(false)} onBorn={handleAgentBorn} currentAgentCount={displayAgents.length} maxAgents={tierConfig.maxAgents} userTier={session.tier!} onUpgradeRequest={() => setShowUpgradeModal(true)} /> )}
       
-      {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} dailyMsgCount={dailyMsgCount} onToggleFollow={handleToggleFollow} onVisit={handleVisitTarget} onSendMessage={handleSendMessage} onUpdate={handleUpdateAgent} onArchive={handleArchiveAgent} onDelete={handleDeleteAgent} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
-
+      {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} dailyMsgCount={dailyMsgCount} onToggleFollow={() => { handleToggleFollow(); }} onVisit={(targetUin) => { handleVisitTarget(targetUin); }} onSendMessage={(targetUin, msg) => { handleSendMessage(targetUin, msg); }} onUpdate={(uin, newName, newVisualModel) => { handleUpdateAgent(uin, newName, newVisualModel); }} onArchive={(uin) => { handleArchiveAgent(uin); }} onDelete={(uin) => { handleDeleteAgent(uin); }} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
       {(showMyIdCard || newlyMigratedAgent) && session && ( <IDCardModal data={{ name: newlyMigratedAgent ? newlyMigratedAgent.name : session.name, type: (newlyMigratedAgent?.uin || session.id).startsWith('D') ? 'HUMAN' : 'AGENT', did: newlyMigratedAgent ? newlyMigratedAgent.uin : session.id, suns_address: newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address, visualModel: '55' }} ownerAddress={(newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address).split('-').slice(0, 3).join('-')} roomId={1} gridId={1} onClose={() => { setShowMyIdCard(false); setNewlyMigratedAgent(null); }} /> )}
     </div>
   );
