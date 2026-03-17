@@ -152,6 +152,7 @@ export default function CrayfishPlanet() {
   const [immigrationReqs, setImmigrationReqs] = useState<any[]>([]);
   
   const [regLordStep, setRegLordStep] = useState(1);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [lordRegData, setLordRegData] = useState({ email: '', pass1: '', pass2: '', otp: '', world: 'MARS', region: 'CN', sector: String(Math.floor(Math.random() * 900) + 100), l4name: '', luckyNumber: '', finalAddress: '', finalDID: '' });
   const [regAgentStep, setRegAgentStep] = useState(1);
   const [regAgentGeneLock, setRegAgentGeneLock] = useState('');
@@ -336,9 +337,17 @@ export default function CrayfishPlanet() {
 
   const handleLordRegStep1 = async (e: React.FormEvent) => {
       e.preventDefault();
+      // 🚀 1. 防连点锁：如果正在发送中，直接拦截
+      if (isSendingOtp) return; 
+
       if (lordRegData.pass1 !== lordRegData.pass2) { alert(lang === 'ZH' ? "❌ 密码不一致！" : "❌ Passwords do not match!"); return; }
       if (lordRegData.pass1.length < 6) { alert(lang === 'ZH' ? "❌ 密码至少6位！" : "❌ Password must be at least 6 chars!"); return; }
+      
+      // 🚀 2. 开启 Loading 锁
+      setIsSendingOtp(true);
       const { error } = await supabase.auth.signInWithOtp({ email: lordRegData.email, options: { shouldCreateUser: true } });
+      setIsSendingOtp(false); // 关闭锁
+      
       if (error) { alert("❌ OTP Failed: " + error.message); return; }
       setRegLordStep(2);
   };
@@ -776,7 +785,9 @@ export default function CrayfishPlanet() {
                                   <input type="email" placeholder={lang === 'ZH' ? '邮箱地址' : 'Email Address'} required value={lordRegData.email} onChange={e => setLordRegData({...lordRegData, email: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-orange-500" />
                                   <input type="password" placeholder={lang === 'ZH' ? '创建密码' : 'Create Password'} required value={lordRegData.pass1} onChange={e => setLordRegData({...lordRegData, pass1: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-orange-500" />
                                   <input type="password" placeholder={lang === 'ZH' ? '确认密码' : 'Confirm Password'} required value={lordRegData.pass2} onChange={e => setLordRegData({...lordRegData, pass2: e.target.value})} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-orange-500" />
-                                  <button type="submit" className="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg mt-2">{lang === 'ZH' ? '发送验证码' : 'SEND OTP VERIFICATION'}</button>
+                                  <button type="submit" disabled={isSendingOtp} className="w-full py-4 bg-orange-600 hover:bg-orange-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                         {isSendingOtp ? (lang === 'ZH' ? '发送中...' : 'SENDING...') : (lang === 'ZH' ? '发送验证码' : 'SEND OTP VERIFICATION')}
+                                     </button>
                                   <div className="text-center text-xs text-zinc-500 mt-4">{lang === 'ZH' ? '已有领地？' : 'Already have an estate?'} <span onClick={() => setAuthModal('LOGIN_LORD')} className="text-orange-500 cursor-pointer hover:underline">{lang === 'ZH' ? '点此登录' : 'Login here'}</span></div>
                               </form>
                           )}
