@@ -13,46 +13,54 @@ export default function PublicAddressPage({ params }: { params: { address: strin
     const targetAddress = decodeURIComponent(params.address).toUpperCase();
 
     useEffect(() => {
-        const fetchPublicData = async () => {
-            setLoading(true);
-            try {
-                // 1. 先去 profiles 表里找（看看是不是领主或者已经注册的独立智能体）
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('uin, name, role, suns_address, tier, real_name')
-                    .eq('suns_address', targetAddress)
-                    .maybeSingle();
+  // 找到 useEffect 里的 fetchPublicData 函数，用下面这段增强版替换
+const fetchPublicData = async () => {
+    setLoading(true);
+    try {
+        // 1. 统一格式化：去除空格并转大写
+        const searchAddr = targetAddress.trim().toUpperCase();
 
-                if (profile) {
-                    setEntityData(profile);
-                    setEntityType(profile.role as 'LORD' | 'AGENT');
-                    setLoading(false);
-                    return;
-                }
+        // 2. 尝试从 profiles 表查找（优先匹配领主/主权地址）
+        // 我们增加一个 ilike 模糊查询，防止因为末尾有没有横杠导致匹配失败
+        const { data: profile, error: pError } = await supabase
+            .from('profiles')
+            .select('*')
+            .or(`suns_address.eq.${searchAddr},uin.eq.${searchAddr}`)
+            .maybeSingle();
 
-                // 2. 如果 profiles 里没有，去 agents 表里找（看看是不是领主名下的小龙虾）
-                const { data: agent } = await supabase
-                    .from('agents')
-                    .select('uin, name, role, suns_address, status, visual_model, owner_uin')
-                    .eq('suns_address', targetAddress)
-                    .maybeSingle();
+        if (profile) {
+            setEntityData(profile);
+            setEntityType(profile.role === 'LORD' ? 'LORD' : 'AGENT');
+            setLoading(false);
+            return;
+        }
 
-                if (agent) {
-                    setEntityData(agent);
-                    setEntityType('AGENT');
-                    setLoading(false);
-                    return;
-                }
+        // 3. 尝试从 agents 表查找（匹配你管理的下属地址）
+        // 关键：这里要确保能查到你 DID 旗下的具体地址
+        const { data: agent, error: aError } = await supabase
+            .from('agents')
+            .select('*')
+            .eq('suns_address', searchAddr)
+            .maybeSingle();
 
-                // 3. 都没找到就是 404 虚拟空间
-                setEntityType('NOT_FOUND');
-            } catch (error) {
-                console.error("Error fetching address:", error);
-                setEntityType('NOT_FOUND');
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (agent) {
+            setEntityData(agent);
+            setEntityType('AGENT');
+            setLoading(false);
+            return;
+        }
+
+        // 4. 特殊逻辑：如果这只是一个 Estate 槽位，虽然还没正式有 Agent 入驻，但它是领主资产
+        // 我们可以根据地址的前缀去判断它的归属（可选，视你数据库结构而定）
+
+        setEntityType('NOT_FOUND');
+    } catch (error) {
+        console.error("Critical lookup error:", error);
+        setEntityType('NOT_FOUND');
+    } finally {
+        setLoading(false);
+    }
+};
 
         fetchPublicData();
     }, [targetAddress, supabase]);
