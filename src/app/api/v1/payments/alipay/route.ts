@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { AlipaySdk } from 'alipay-sdk';
+import { createClient } from '@supabase/supabase-js';
+
+// 初始化数据库
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export async function POST(request: Request) {
   try {
@@ -14,19 +21,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ paymentUrl: null, error: '缺少支付宝密钥配置' }, { status: 500 }); 
     }
 
-    const alipaySdk = new AlipaySdk({
-      appId: rawAppId,
-      privateKey: rawPrivateKey,      
-      alipayPublicKey: rawPublicKey,  
-      gateway: 'https://openapi.alipay.com/gateway.do', 
-      timeout: 5000,
-      camelcase: true,
-    });
-    
     const amount = price || (tier === 'VIP' ? 72.00 : 360.00);
+    if (!amount) return NextResponse.json({ error: '无效的订单金额' }, { status: 400 });
 
-    if (!amount) {
-        return NextResponse.json({ error: '无效的订单金额' }, { status: 400 });
+    const outTradeNo = `ORDER_${Date.now()}_${uin.slice(-6)}`;
+
+    // 🚀 核心修复：必须先在数据库里建一个 PENDING 的单子！
+    if (userId) {
+        const { error: dbError } = await supabase.from('orders').insert({
+            user_id: userId,
+            user_uin: uin,
+            out_trade_no: outTradeNo,
+            plan_type: tier,
+            amount: amount,
+            status: 'PENDING'
+        });
+        if (dbError) console.error('🚨 [ALIPAY] 订单写入数据库失败:', dbError);
     }
 
     // 🌐 自动寻路域名机制
@@ -37,26 +47,33 @@ export async function POST(request: Request) {
     }
     baseUrl = baseUrl.replace(/\/$/, '');
 
-    // 🚀 核心黑魔法：把用户的 ID 和购买的层级打包成字符串，让支付宝帮我们保管！
+    // 🚀 公文包透传参数
     const passbackObj = { userId: userId, tier: tier, duration: duration, amount: amount };
     const passbackParams = encodeURIComponent(JSON.stringify(passbackObj));
 
-    const outTradeNo = `ORDER_${Date.now()}_${uin}`;
+    const alipaySdk = new AlipaySdk({
+      appId: rawAppId,
+      privateKey: rawPrivateKey,      
+      alipayPublicKey: rawPublicKey,  
+      gateway: 'https://openapi.alipay.com/gateway.do', 
+      timeout: 5000,
+      camelcase: true,
+    });
 
     const paymentUrl = alipaySdk.pageExec('alipay.trade.page.pay', {
       method: 'GET',
       returnUrl: `${baseUrl}/?payment=success`,
-      notifyUrl: `${baseUrl}/api/v1/webhooks/alipay`, 
+      notifyUrl: `${baseUrl}/api/v1/webhooks/alipay`, // 👈 确保这里指向你的 Webhook
       bizContent: {
         outTradeNo: outTradeNo,
         productCode: 'FAST_INSTANT_TRADE_PAY',
         totalAmount: amount.toFixed(2), 
         subject: `Space2 ${tier} Estate License`,
-        passbackParams: passbackParams, // 👈 支付宝会把这个公文包原样退回给 Webhook！
+        passbackParams: passbackParams, 
       }
     });
 
-    console.log('✅ [ALIPAY] 支付宝链接生成成功! 订单号:', outTradeNo);
+    console.log('✅ [ALIPAY] 下单成功! 订单号:', outTradeNo);
     return NextResponse.json({ paymentUrl: paymentUrl });
 
   } catch (error: any) {
