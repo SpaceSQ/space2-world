@@ -39,13 +39,23 @@ export async function POST(request: Request) {
         if (dbError) console.error('🚨 [ALIPAY] 订单写入数据库失败:', dbError);
     }
 
-    // 🌐 自动寻路域名机制
-    let baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    if (!baseUrl) {
-        const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-        baseUrl = vercelUrl ? `https://${vercelUrl}` : 'http://localhost:3000';
-    }
-    baseUrl = baseUrl.replace(/\/$/, '');
+    // 🚀 终极防掉单：直接写死你部署在 Vercel 上的真实公网域名！
+    // ⚠️ 请把 https://你的真实域名.com 换成你 Vercel 上的正式网址！
+    // 比如：https://space2-world.vercel.app 或者你绑定的独立域名
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.space2.world'; 
+    
+    const paymentUrl = alipaySdk.pageExec('alipay.trade.page.pay', {
+      method: 'GET',
+      returnUrl: `${baseUrl}/?payment=success`,
+      notifyUrl: `${baseUrl}/api/v1/webhooks/alipay`, // 👈 现在支付宝绝对能顺着这个公网地址找到你！
+      bizContent: {
+        outTradeNo: outTradeNo,
+        productCode: 'FAST_INSTANT_TRADE_PAY',
+        totalAmount: amount.toFixed(2), 
+        subject: `Space2 ${tier} Estate License`,
+        passbackParams: passbackParams, 
+      }
+    });
 
     // 🚀 公文包透传参数
     const passbackObj = { userId: userId, tier: tier, duration: duration, amount: amount };
