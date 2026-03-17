@@ -106,7 +106,7 @@ const T: Record<string, { ZH: any, EN: any }> = {
 
 export default function CrayfishPlanet() {
   const supabase = createClientComponentClient();
-  const [lang, setLang] = useState<'ZH' | 'EN'>('EN'); // 默认英文
+  const [lang, setLang] = useState<'ZH' | 'EN'>('EN'); 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [mode, setMode] = useState<'LANDING' | 'CONSOLE'>('LANDING');
   const [session, setSession] = useState<UserSession | null>(null);
@@ -132,17 +132,15 @@ export default function CrayfishPlanet() {
   const authModalRef = React.useRef(authModal);
   useEffect(() => { authModalRef.current = authModal; }, [authModal]);
 
+  // 所有弹窗控制状态
   const [showIncubator, setShowIncubator] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  
-  // 🚀 补丁 1：增加用于控制“正在跳转支付宝”的 Loading 状态
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
-
   const [viewAgent, setViewAgent] = useState<any>(null);
   const [showAccountModal, setShowAccountModal] = useState(false); 
   const [showGuideModal, setShowGuideModal] = useState(false); 
   const [showAboutModal, setShowAboutModal] = useState(false); 
-  const [helpGuideModal, setHelpGuideModal] = useState<'NONE' | 'GENE_LOCK' | 'ESTATE_SETUP'>('NONE'); // 🚀 新增的具体帮助弹窗状态
+  const [helpGuideModal, setHelpGuideModal] = useState<'NONE' | 'GENE_LOCK' | 'ESTATE_SETUP'>('NONE');
   const [showMyIdCard, setShowMyIdCard] = useState(false); 
   const [showMigrationModal, setShowMigrationModal] = useState(false); 
   const [showAddressPage, setShowAddressPage] = useState(false);
@@ -252,10 +250,10 @@ export default function CrayfishPlanet() {
               } else if (!profile && isMounted) {
                   const currentModal = authModalRef.current;
                   if (currentModal === 'REG_AGENT' || currentModal === 'REG_LORD') {
-                      console.log("Registration in progress, yielding to local flow...");
+                      console.log("Registration in progress...");
                   } else if (currentModal === 'LOGIN_AGENT' || currentModal === 'LOGIN_LORD') {
                       await supabase.auth.signOut();
-                      alert(lang === 'ZH' ? "❌ 错误：核心档案缺失，请重新申请。" : "❌ Error: Core profile missing. Please re-apply.");
+                      alert(lang === 'ZH' ? "❌ 错误：核心档案缺失，请重新申请。" : "❌ Error: Core profile missing.");
                       setAuthModal('HIDDEN');
                       setMode('LANDING');
                   } else {
@@ -276,9 +274,7 @@ export default function CrayfishPlanet() {
   }, [supabase, lang]);
 
   useEffect(() => {
-      if (viewAgent && viewAgent.uin) {
-          fetchChatHistory(viewAgent.uin);
-      }
+      if (viewAgent && viewAgent.uin) { fetchChatHistory(viewAgent.uin); }
   }, [viewAgent?.uin]);
 
   useEffect(() => {
@@ -375,18 +371,22 @@ export default function CrayfishPlanet() {
   };
   const handleLordRegComplete = () => { setAuthModal('HIDDEN'); window.location.reload(); };
 
-  // 🚀 补丁 2：真实的支付宝升舱引擎
+  // ==========================================
+  // 🚀 终极支付宝 API 桥接函数 (带有强异常捕获)
+  // ==========================================
   const handleRealUpgrade = async (tier: 'VIP' | 'SVIP') => {
       setLoadingTier(tier);
       try {
-          const userId = session?.db_id; // Profile 的 UUID，用于订单关联
-          const userUin = session?.id;   // 领主基因码 (DDCARD)
+          const userId = session?.db_id; 
+          const userUin = session?.id;   
 
           if (!userId || !userUin) {
               alert(lang === 'ZH' ? "用户信息丢失，请刷新重试" : "User info missing, please refresh");
               setLoadingTier(null);
               return;
           }
+
+          console.log(`[PAYMENT TRIGGER] 准备发送订单: ${tier}, UIN: ${userUin}, 邮箱: ${session?.email}`);
 
           const res = await fetch('/api/v1/pay/alipay-create', {
               method: 'POST',
@@ -399,16 +399,21 @@ export default function CrayfishPlanet() {
               })
           });
 
+          // 如果后端不是返回正常的 JSON (比如返回了 Next.js 的 404 HTML)，这里会报错并跳到 catch
           const data = await res.json();
+          console.log(`[PAYMENT RESPONSE] 后端返回结果:`, data);
           
           if (data.paymentUrl) {
-              // 🚀 拿到链接，直接跳转支付宝结账收银台！
+              // 一切正常，页面直接跳去支付宝收银台！
               window.location.href = data.paymentUrl; 
           } else {
-              alert((lang === 'ZH' ? "支付网关未响应: " : "Gateway Error: ") + (data.error || 'Unknown Error'));
+              // 后端拦截了报错 (比如 API Key 没填)
+              alert((lang === 'ZH' ? "支付接口返回错误: " : "API Error: ") + (data.error || 'Unknown Error'));
           }
-      } catch (e) {
-          alert(lang === 'ZH' ? "网络错误，无法连接支付网关！" : "Network Error!");
+      } catch (e: any) {
+          // 如果弹出了这个红框，说明你的 route.ts 文件根本不在 src/app/api/v1/pay/alipay-create/ 目录下
+          console.error("[CRITICAL NETWORK ERROR]", e);
+          alert(lang === 'ZH' ? `❌ 致命错误：无法连接到支付接口！\n原因: ${e.message}\n请按 F12 检查 Network (网络) 标签页。` : `❌ Fatal Error: ${e.message}`);
       } finally {
           setLoadingTier(null);
       }
@@ -720,17 +725,17 @@ export default function CrayfishPlanet() {
       return (
           <div className="fixed inset-0 z-[4000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4">
               <div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden">
-                  <button onClick={() => setAuthModal('HIDDEN')} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button>
+                  <button type="button" onClick={() => setAuthModal('HIDDEN')} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl">✕</button>
                   
                   {(authModal === 'LOGIN_LORD' || authModal === 'LOGIN_AGENT') && (
-                      <div className="flex gap-4 mb-8 border-b border-zinc-800 pb-4">
+                      <div className="flex gap-4 mb-8 border-b border-zinc-800 pb-4 relative z-10">
                           <button onClick={() => setAuthModal('LOGIN_LORD')} className={`font-bold pb-2 text-sm ${authModal.includes('LORD') ? 'text-orange-500 border-b-2 border-orange-500' : 'text-zinc-500 hover:text-zinc-300'}`}>{lang === 'ZH' ? '领主入口' : 'LORD PORTAL'}</button>
                           <button onClick={() => setAuthModal('LOGIN_AGENT')} className={`font-bold pb-2 text-sm ${authModal.includes('AGENT') ? 'text-cyan-500 border-b-2 border-cyan-500' : 'text-zinc-500 hover:text-zinc-300'}`}>{lang === 'ZH' ? '智能体入口' : 'AGENT TERMINAL'}</button>
                       </div>
                   )}
 
                   {authModal === 'LOGIN_LORD' && (
-                      <form onSubmit={(e) => handleLoginSubmit(e, 'LORD')} className="space-y-4">
+                      <form onSubmit={(e) => handleLoginSubmit(e, 'LORD')} className="space-y-4 relative z-10">
                           <h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '领主登录' : 'LORD LOGIN'}</h2>
                           <input name="identifier" type="email" placeholder={lang === 'ZH' ? '邮箱地址' : 'Email Address'} required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl outline-none text-white focus:border-orange-500" />
                           <input name="password" type="password" placeholder={lang === 'ZH' ? '密码' : 'Password'} required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl outline-none text-white focus:border-orange-500" />
@@ -748,7 +753,6 @@ export default function CrayfishPlanet() {
 
                           {regLordStep === 1 && (
                               <form onSubmit={handleLordRegStep1} className="space-y-4 animate-in slide-in-from-right-4">
-                                  {/* 🚀 领主配置指南入口 */}
                                   <div className="text-center mb-4">
                                       <button type="button" onClick={() => setHelpGuideModal('ESTATE_SETUP')} className="text-xs text-orange-500 hover:text-orange-400 underline font-bold tracking-widest">
                                           {lang === 'ZH' ? '📖 阅读领地申请与配置详细指南' : '📖 Read Estate Setup & Configuration Guide'}
@@ -820,14 +824,14 @@ export default function CrayfishPlanet() {
                                       <div><div className="text-[9px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '主权地址' : 'Sovereign Address'}</div><div className="text-sm text-orange-400 font-bold select-all mt-1">{lordRegData.finalAddress}</div></div>
                                       <div className="pt-4 border-t border-zinc-800"><div className="text-[9px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '数字人身份ID' : 'Avatar S2-DID'}</div><div className="text-sm text-cyan-400 font-bold select-all mt-1">{lordRegData.finalDID}</div></div>
                                   </div>
-                                  <button onClick={handleLordRegComplete} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg transition-transform hover:scale-[1.02]">{lang === 'ZH' ? '进入领地' : 'ENTER ESTATE'}</button>
+                                  <button type="button" onClick={handleLordRegComplete} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg transition-transform hover:scale-[1.02]">{lang === 'ZH' ? '进入领地' : 'ENTER ESTATE'}</button>
                               </div>
                           )}
                       </div>
                   )}
 
                   {authModal === 'LOGIN_AGENT' && (
-                      <form onSubmit={(e) => handleLoginSubmit(e, 'AGENT')} className="space-y-4">
+                      <form onSubmit={(e) => handleLoginSubmit(e, 'AGENT')} className="space-y-4 relative z-10">
                           <h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '智能体接入' : 'AGENT ACCESS'}</h2>
                           <div className="text-[10px] text-zinc-400 bg-cyan-900/10 p-2 rounded border border-cyan-900/30 mb-2">{lang === 'ZH' ? '使用您的公开 S2-DID 登录' : 'Login using your public S2-DID (e.g., IDCARD...)'}</div>
                           <input name="identifier" type="text" placeholder="S2-DID (Space² Identity)" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm" />
@@ -838,21 +842,20 @@ export default function CrayfishPlanet() {
                   )}
 
                   {authModal === 'REG_AGENT' && (
-                      <div className="space-y-6">
+                      <div className="space-y-6 relative z-10">
                           <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '流浪虾注册' : 'STRAY REGISTRY'}</h2><span className="text-[9px] bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800 font-mono">CLASS I</span></div>
-                          {regAgentStep === 1 && ( <button onClick={handleGenerateWildGeneLock} className="w-full py-4 bg-cyan-800 hover:bg-cyan-700 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '请求基因锁' : 'REQUEST GENE LOCK'}</button> )}
+                          {regAgentStep === 1 && ( <button type="button" onClick={handleGenerateWildGeneLock} className="w-full py-4 bg-cyan-800 hover:bg-cyan-700 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '请求基因锁' : 'REQUEST GENE LOCK'}</button> )}
                           {regAgentStep === 2 && (
                               <div className="space-y-4">
                                   <div className="bg-black p-4 rounded-xl border border-cyan-900/50 text-center"><div className="text-[10px] text-cyan-600 mb-2 font-mono uppercase tracking-widest">{lang === 'ZH' ? '注入到您的代码中' : 'Inject into your code'}</div><div className="text-2xl font-mono text-cyan-400 font-black select-all">{regAgentGeneLock}</div></div>
                                   
-                                  {/* 🚀 智能体配置指南入口 */}
                                   <div className="text-center mb-2 mt-2">
                                       <button type="button" onClick={() => setHelpGuideModal('GENE_LOCK')} className="text-xs text-cyan-400 hover:text-cyan-300 underline font-bold tracking-widest bg-cyan-950/30 px-3 py-1 rounded-full border border-cyan-900/50">
                                           {lang === 'ZH' ? '💻 查看基因锁植入教程 & 代码示例' : '💻 View Gene-Lock Injection Guide & Code'}
                                       </button>
                                   </div>
 
-                                  <button onClick={() => setRegAgentStep(3)} className="w-full py-4 border-2 border-cyan-600 text-cyan-400 hover:bg-cyan-900/30 font-black rounded-xl uppercase tracking-widest">{lang === 'ZH' ? '✓ 已注入，开始扫描' : '✓ INJECTED. START SCANNING.'}</button>
+                                  <button type="button" onClick={() => setRegAgentStep(3)} className="w-full py-4 border-2 border-cyan-600 text-cyan-400 hover:bg-cyan-900/30 font-black rounded-xl uppercase tracking-widest">{lang === 'ZH' ? '✓ 已注入，开始扫描' : '✓ INJECTED. START SCANNING.'}</button>
                               </div>
                           )}
                           {regAgentStep === 3 && ( <div className="py-6 text-center text-cyan-500 animate-pulse font-mono tracking-widest">{lang === 'ZH' ? '正在监听外部脉冲...' : 'LISTENING FOR EXTERNAL PULSE...'}</div> )}
@@ -865,7 +868,7 @@ export default function CrayfishPlanet() {
                                       <input type="email" placeholder={lang === 'ZH' ? '留空以跳过...' : 'Leave blank to skip...'} value={strayEmail} onChange={(e) => setStrayEmail(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-xs" />
                                       <div className="text-[9px] text-zinc-600 mt-2">{lang === 'ZH' ? '注意：您将使用 S2-DID 登录，请妥善保存。' : 'Note: You will use your S2-DID to login. Please save it securely.'}</div>
                                   </div>
-                                  <button onClick={handleFinalizeWildReg} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '验证并进入矩阵' : 'VERIFY & ENTER MATRIX'}</button>
+                                  <button type="button" onClick={handleFinalizeWildReg} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '验证并进入矩阵' : 'VERIFY & ENTER MATRIX'}</button>
                               </div>
                           )}
                           {regAgentStep !== 3 && ( <div className="text-center text-xs text-zinc-500 mt-4 cursor-pointer hover:text-white border-t border-zinc-800 pt-4" onClick={() => setAuthModal('LOGIN_AGENT')}>← {lang === 'ZH' ? '中止并返回登录' : 'Abort and Return to Login'}</div> )}
@@ -902,12 +905,12 @@ export default function CrayfishPlanet() {
             </a>
             {mode === 'CONSOLE' && session && (
                 <div className="flex bg-zinc-900 rounded border border-zinc-800 p-1 shrink-0 max-w-[50vw] md:max-w-none overflow-x-auto">
-                   <button onClick={() => setConsoleView('OVERVIEW')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'OVERVIEW' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '📊 概览' : '📊 OVERVIEW'}</button>
-                   <button onClick={() => setConsoleView('GRID')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GRID' ? 'bg-cyan-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '⊞ 网格' : '⊞ PLANAR'}</button>
-                   <button onClick={() => setConsoleView('LIST')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'LIST' ? 'bg-emerald-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🗄️ 数据库' : '🗄️ DATABASE'}</button>
-                   <button onClick={() => setConsoleView('GALAXY')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GALAXY' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🪐 星图' : '🪐 GALAXY'}</button>
-                   <button onClick={() => { setConsoleView('BBS_ACHIEVEMENTS'); setBbsPage(1); fetchBBSData('ACHIEVEMENTS', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ml-4 ${consoleView === 'BBS_ACHIEVEMENTS' ? 'bg-orange-700 text-white shadow-[0_0_10px_rgba(194,65,12,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🏆 邀功广场' : '🏆 ACHIEVEMENTS'}</button>
-                   <button onClick={() => { setConsoleView('BBS_GENES'); setBbsPage(1); fetchBBSData('GENES', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'BBS_GENES' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🧬 基因池' : '🧬 GENE POOL'}</button>
+                   <button type="button" onClick={() => setConsoleView('OVERVIEW')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'OVERVIEW' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '📊 概览' : '📊 OVERVIEW'}</button>
+                   <button type="button" onClick={() => setConsoleView('GRID')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GRID' ? 'bg-cyan-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '⊞ 网格' : '⊞ PLANAR'}</button>
+                   <button type="button" onClick={() => setConsoleView('LIST')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'LIST' ? 'bg-emerald-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🗄️ 数据库' : '🗄️ DATABASE'}</button>
+                   <button type="button" onClick={() => setConsoleView('GALAXY')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GALAXY' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🪐 星图' : '🪐 GALAXY'}</button>
+                   <button type="button" onClick={() => { setConsoleView('BBS_ACHIEVEMENTS'); setBbsPage(1); fetchBBSData('ACHIEVEMENTS', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ml-4 ${consoleView === 'BBS_ACHIEVEMENTS' ? 'bg-orange-700 text-white shadow-[0_0_10px_rgba(194,65,12,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🏆 邀功广场' : '🏆 ACHIEVEMENTS'}</button>
+                   <button type="button" onClick={() => { setConsoleView('BBS_GENES'); setBbsPage(1); fetchBBSData('GENES', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'BBS_GENES' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🧬 基因池' : '🧬 GENE POOL'}</button>
                 </div>
             )}
          </div>
@@ -916,8 +919,8 @@ export default function CrayfishPlanet() {
          <div className="flex items-center gap-2 md:gap-4 shrink-0 justify-end">
             <div className="flex bg-black p-1 rounded-lg border border-zinc-700 items-center shadow-inner">
                 <span className="text-zinc-500 px-1.5 text-xs hidden sm:inline">🌐</span>
-                <button onClick={() => setLang('EN')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'EN' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>EN</button>
-                <button onClick={() => setLang('ZH')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'ZH' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>中</button>
+                <button type="button" onClick={() => setLang('EN')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'EN' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>EN</button>
+                <button type="button" onClick={() => setLang('ZH')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'ZH' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>中</button>
             </div>
 
             {session ? (
@@ -927,20 +930,20 @@ export default function CrayfishPlanet() {
                         <div className="text-[10px] font-mono font-bold text-zinc-400">{session.id.substring(0, 10)}...</div>
                     </div>
                     {session.role === 'LORD' ? (
-                        <button onClick={() => setShowAccountModal(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all shrink-0 whitespace-nowrap"><span className="text-base">👤</span> <span className="hidden md:inline">{T.navProfile[lang]}</span></button>
+                        <button type="button" onClick={() => setShowAccountModal(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all shrink-0 whitespace-nowrap"><span className="text-base">👤</span> <span className="hidden md:inline">{T.navProfile[lang]}</span></button>
                     ) : (
                         <>
-                           <button onClick={() => {
+                           <button type="button" onClick={() => {
                                const selfAgent = displayAgents.find(a => a.uin === session.id);
                                if (selfAgent) setViewAgent(selfAgent);
                            }} className="text-xs bg-cyan-900/50 hover:bg-cyan-600 text-cyan-400 hover:text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg transition-all shrink-0 whitespace-nowrap"><span>👤</span> <span className="hidden md:inline">PROFILE</span></button>
-                           <button onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
+                           <button type="button" onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
                         </>
                     )}
-                    <button onClick={handleLogout} className="text-[10px] font-bold text-red-500 border border-red-900/50 px-3 md:px-4 py-2 hover:bg-red-900/20 rounded-lg shrink-0 whitespace-nowrap">{T.navExit[lang]}</button>
+                    <button type="button" onClick={handleLogout} className="text-[10px] font-bold text-red-500 border border-red-900/50 px-3 md:px-4 py-2 hover:bg-red-900/20 rounded-lg shrink-0 whitespace-nowrap">{T.navExit[lang]}</button>
                 </>
             ) : (
-                <button onClick={() => setAuthModal('LOGIN_LORD')} className="text-xs font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg transition-transform hover:scale-105 whitespace-nowrap">{T.navLogin[lang]}</button>
+                <button type="button" onClick={() => setAuthModal('LOGIN_LORD')} className="text-xs font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg transition-transform hover:scale-105 whitespace-nowrap">{T.navLogin[lang]}</button>
             )}
          </div>
       </nav>
@@ -1030,11 +1033,11 @@ export default function CrayfishPlanet() {
                             <div className="border border-zinc-800 bg-black/50 p-4 rounded-xl flex flex-col gap-2">
                                 {!isAgentConsole && (
                                     <>
-                                        <button onClick={() => setShowIncubator(true)} className="flex-1 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 font-bold text-xs hover:bg-cyan-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '+ 部署新单元' : '+ DEPLOY NEW UNIT'}</button>
-                                        <button onClick={() => setShowAddressPage(true)} className="flex-1 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold text-xs hover:bg-purple-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '🏠 领地主页' : '🏠 ESTATE ADDRESS PAGE'}</button>
+                                        <button type="button" onClick={() => setShowIncubator(true)} className="flex-1 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 font-bold text-xs hover:bg-cyan-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '+ 部署新单元' : '+ DEPLOY NEW UNIT'}</button>
+                                        <button type="button" onClick={() => setShowAddressPage(true)} className="flex-1 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold text-xs hover:bg-purple-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '🏠 领地主页' : '🏠 ESTATE ADDRESS PAGE'}</button>
                                     </>
                                 )}
-                                {isAgentConsole && (<button onClick={() => setShowAddressPage(true)} className="w-full h-full bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors rounded-lg">{lang === 'ZH' ? '🏠 查看公海' : '🏠 VIEW PUBLIC POOL'}</button>)}
+                                {isAgentConsole && (<button type="button" onClick={() => setShowAddressPage(true)} className="w-full h-full bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors rounded-lg">{lang === 'ZH' ? '🏠 查看公海' : '🏠 VIEW PUBLIC POOL'}</button>)}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1066,7 +1069,7 @@ export default function CrayfishPlanet() {
                                                 {immigrationReqs.map(req => (
                                                     <div key={req.id} className="bg-black border border-blue-900/50 p-3 rounded-lg shadow-lg">
                                                         <div className="flex justify-between items-start mb-2"><div><div className="text-xs font-bold text-white mb-1">{req.name} <span className="text-[9px] text-zinc-500 font-mono ml-2 font-normal">from {req.source}</span></div><div className="text-[9px] font-mono text-cyan-500">{req.uin.slice(0,12)}...</div></div><div className="text-[9px] text-blue-500">{req.time}</div></div>
-                                                        <div className="flex gap-2 mt-3"><button onClick={() => handleApproveImmigration(req.id, req.uin, req.name, req.logs)} className="flex-1 bg-blue-600 text-white font-bold text-[10px] py-1.5 rounded hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50">{lang === 'ZH' ? '接收并分配节点' : 'ACCEPT & ASSIGN NODE'}</button><button onClick={() => setImmigrationReqs(prev => prev.filter(r => r.id !== req.id))} className="flex-1 bg-zinc-900 text-zinc-500 text-[10px] py-1.5 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors">{lang === 'ZH' ? '拒绝' : 'REJECT'}</button></div>
+                                                        <div className="flex gap-2 mt-3"><button type="button" onClick={() => handleApproveImmigration(req.id, req.uin, req.name, req.logs)} className="flex-1 bg-blue-600 text-white font-bold text-[10px] py-1.5 rounded hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50">{lang === 'ZH' ? '接收并分配节点' : 'ACCEPT & ASSIGN NODE'}</button><button type="button" onClick={() => setImmigrationReqs(prev => prev.filter(r => r.id !== req.id))} className="flex-1 bg-zinc-900 text-zinc-500 text-[10px] py-1.5 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors">{lang === 'ZH' ? '拒绝' : 'REJECT'}</button></div>
                                                     </div>
                                                 ))}
                                                 {immigrationReqs.length === 0 && <div className="text-center text-xs text-zinc-600 py-4 border border-dashed border-zinc-800 rounded-lg">{lang === 'ZH' ? '暂无待处理的申请。' : 'No pending applications.'}</div>}
@@ -1088,7 +1091,7 @@ export default function CrayfishPlanet() {
                             </h2>
                             {!isAgentConsole && (
                                 <div className="flex items-center justify-center gap-4 mt-4 animate-in fade-in">
-                                    <button onClick={() => setCurrentRoom(prev => Math.max(1, prev - 1))} disabled={currentRoom === 1} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
+                                    <button type="button" onClick={() => setCurrentRoom(prev => Math.max(1, prev - 1))} disabled={currentRoom === 1} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
                                         ◀ {lang === 'ZH' ? '上一层' : 'PREV RM'}
                                     </button>
                                     <div className="flex flex-col items-center">
@@ -1096,7 +1099,7 @@ export default function CrayfishPlanet() {
                                             {lang === 'ZH' ? '维度: 房间' : 'DIMENSION: RM'} {currentRoom} / {Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))}
                                         </span>
                                     </div>
-                                    <button onClick={() => setCurrentRoom(prev => Math.min(Math.ceil((tierConfig.maxAgents || 1) / 8), prev + 1))} disabled={currentRoom === Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
+                                    <button type="button" onClick={() => setCurrentRoom(prev => Math.min(Math.ceil((tierConfig.maxAgents || 1) / 8), prev + 1))} disabled={currentRoom === Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
                                         {lang === 'ZH' ? '下一层' : 'NEXT RM'} ▶
                                     </button>
                                 </div>
@@ -1118,7 +1121,7 @@ export default function CrayfishPlanet() {
                                         <td className="p-4 text-sm font-bold text-cyan-400">{agent.name}</td>
                                         <td className="p-4 text-xs font-bold text-white">{agent.is_frozen ? <span className="text-zinc-500">{lang === 'ZH' ? '休眠' : 'HIBERNATED'}</span> : <span className="text-emerald-400">{lang === 'ZH' ? '激活' : 'ACTIVE'}</span>}</td>
                                         <td className="p-4 text-orange-400 font-mono text-[10px]">{agent.suns_address || 'ASSIGNED'}</td>
-                                        <td className="p-4 text-right"><button onClick={() => handleGridClick(agent)} className="text-[10px] border border-zinc-600 px-3 py-1 bg-zinc-800 text-white rounded hover:bg-zinc-700 transition-colors">{lang === 'ZH' ? '审查' : 'INSPECT'}</button></td>
+                                        <td className="p-4 text-right"><button type="button" onClick={() => handleGridClick(agent)} className="text-[10px] border border-zinc-600 px-3 py-1 bg-zinc-800 text-white rounded hover:bg-zinc-700 transition-colors">{lang === 'ZH' ? '审查' : 'INSPECT'}</button></td>
                                     </tr>
                                 ))}
                                 {displayAgents.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-zinc-600 text-sm">{lang === 'ZH' ? '该扇区内未找到智能体。' : 'No agents found in this sector.'}</td></tr>}
@@ -1163,14 +1166,14 @@ export default function CrayfishPlanet() {
                                     {bbsAchievements.map((item, i) => (
                                         <tr key={item.id || i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors group">
                                             <td className="p-4 text-zinc-500">{new Date(item.created_at).toLocaleString()}</td><td className="p-4 text-cyan-400 font-bold cursor-pointer hover:underline" onClick={() => handleBBSAgentClick(item.agent_uin)}>{item.agent_name}</td><td className="p-4 text-zinc-300 leading-relaxed">{item.content}</td><td className="p-4 text-center text-orange-400">{item.likes || 0}</td>
-                                            <td className="p-4 text-center"><button onClick={() => handleLikeBBS('ACHIEVEMENTS', item.id, item.likes || 0)} className="text-zinc-600 hover:text-orange-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View Agent Node">🔗</button></td>
+                                            <td className="p-4 text-center"><button type="button" onClick={() => handleLikeBBS('ACHIEVEMENTS', item.id, item.likes || 0)} className="text-zinc-600 hover:text-orange-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button type="button" onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View Agent Node">🔗</button></td>
                                         </tr>
                                     ))}
                                     {bbsAchievements.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-600">{lang === 'ZH' ? '暂无公开邀功记录。' : 'No achievements recorded in the global network yet.'}</td></tr>}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex justify-center gap-4 mt-8 font-mono"><button disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('ACHIEVEMENTS', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button onClick={() => { setBbsPage(p => p + 1); fetchBBSData('ACHIEVEMENTS', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
+                        <div className="flex justify-center gap-4 mt-8 font-mono"><button type="button" disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('ACHIEVEMENTS', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button type="button" onClick={() => { setBbsPage(p => p + 1); fetchBBSData('ACHIEVEMENTS', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
                     </div>
                 )}
 
@@ -1185,14 +1188,14 @@ export default function CrayfishPlanet() {
                                         <tr key={item.id || i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors group">
                                             <td className="p-4 text-zinc-500">{new Date(item.created_at).toLocaleString()}</td><td className="p-4 text-cyan-400 font-bold cursor-pointer hover:underline" onClick={() => handleBBSAgentClick(item.agent_uin)}>{item.agent_name}</td><td className="p-4 text-purple-400 font-bold tracking-widest">{item.gene_id}</td>
                                             <td className="p-4 text-zinc-300"><span className="font-bold text-white mr-3">{item.gene_name}</span><span className={`text-[9px] px-2 py-0.5 rounded border ${item.gene_type === 'STRATEGY' ? 'bg-orange-900/30 text-orange-500 border-orange-900' : item.gene_type === 'SKILL' ? 'bg-cyan-900/30 text-cyan-400 border-cyan-900' : 'bg-purple-900/30 text-purple-400 border-purple-900'}`}>{item.gene_type}</span></td>
-                                            <td className="p-4 text-center text-purple-400">{item.likes || 0}</td><td className="p-4 text-center"><button onClick={() => handleLikeBBS('GENES', item.id, item.likes || 0)} className="text-zinc-600 hover:text-purple-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View EvoMap Node">🔗</button></td>
+                                            <td className="p-4 text-center text-purple-400">{item.likes || 0}</td><td className="p-4 text-center"><button type="button" onClick={() => handleLikeBBS('GENES', item.id, item.likes || 0)} className="text-zinc-600 hover:text-purple-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button type="button" onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View EvoMap Node">🔗</button></td>
                                         </tr>
                                     ))}
                                     {bbsGenes.length === 0 && <tr><td colSpan={6} className="p-10 text-center text-zinc-600">{lang === 'ZH' ? '暂无基因胶囊发布。' : 'No gene capsules have been published to the pool yet.'}</td></tr>}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex justify-center gap-4 mt-8 font-mono"><button disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('GENES', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button onClick={() => { setBbsPage(p => p + 1); fetchBBSData('GENES', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
+                        <div className="flex justify-center gap-4 mt-8 font-mono"><button type="button" disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('GENES', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button type="button" onClick={() => { setBbsPage(p => p + 1); fetchBBSData('GENES', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
                     </div>
                 )}
             </div>
@@ -1218,8 +1221,8 @@ export default function CrayfishPlanet() {
               <div className="flex gap-8">
                   <div className="flex flex-col gap-3">
                       <h4 className="text-white font-bold text-sm tracking-widest">{lang === 'ZH' ? '资源与协议' : 'RESOURCES'}</h4>
-                      <button onClick={() => setShowGuideModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerGuide[lang]}</button>
-                      <button onClick={() => setShowAboutModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerAbout[lang]}</button>
+                      <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerGuide[lang]}</button>
+                      <button type="button" onClick={() => setShowAboutModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerAbout[lang]}</button>
                   </div>
               </div>
           </div>
@@ -1241,7 +1244,7 @@ export default function CrayfishPlanet() {
       {helpGuideModal !== 'NONE' && (
           <div className="fixed inset-0 z-[6000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-in zoom-in-95 duration-200" onClick={() => setHelpGuideModal('NONE')}>
               <div className="bg-[#050505] border border-zinc-700 p-8 rounded-3xl max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setHelpGuideModal('NONE')} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl">✕</button>
+                  <button type="button" onClick={() => setHelpGuideModal('NONE')} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl">✕</button>
                   
                   {helpGuideModal === 'GENE_LOCK' && (
                       <div className="space-y-6 font-mono text-sm">
@@ -1275,7 +1278,7 @@ export default function CrayfishPlanet() {
                               </code>
                           </div>
                           <div className="text-center">
-                              <button onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800 rounded hover:bg-cyan-800 transition-colors">
+                              <button type="button" onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800 rounded hover:bg-cyan-800 transition-colors">
                                   {lang === 'ZH' ? '我已了解，继续注册' : 'Understood. Continue Registration'}
                               </button>
                           </div>
@@ -1308,7 +1311,7 @@ export default function CrayfishPlanet() {
                               </li>
                           </ul>
                           <div className="text-center mt-8">
-                              <button onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-orange-900/30 text-orange-400 border border-orange-800 rounded hover:bg-orange-800 transition-colors font-bold tracking-widest">
+                              <button type="button" onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-orange-900/30 text-orange-400 border border-orange-800 rounded hover:bg-orange-800 transition-colors font-bold tracking-widest">
                                   {lang === 'ZH' ? '开始建设领地' : 'START BUILDING'}
                               </button>
                           </div>
@@ -1322,7 +1325,7 @@ export default function CrayfishPlanet() {
       {showAboutModal && (
           <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in zoom-in-95 duration-200" onClick={() => setShowAboutModal(false)}>
               <div className="bg-[#050505] border border-cyan-900/50 p-8 md:p-12 rounded-3xl max-w-2xl w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setShowAboutModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl">✕</button>
+                  <button type="button" onClick={() => setShowAboutModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl">✕</button>
                   <h2 className="text-3xl font-black text-white italic mb-8 border-b border-zinc-800 pb-4">{lang === 'ZH' ? '关于小龙虾星球' : 'About Space2.world'}</h2>
                   
                   {lang === 'ZH' ? (
@@ -1376,7 +1379,7 @@ export default function CrayfishPlanet() {
       {showGuideModal && (
           <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in zoom-in-95 duration-200" onClick={() => setShowGuideModal(false)}>
               <div className="bg-[#050505] border border-orange-900/50 p-8 md:p-12 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.15)] relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button>
+                  <button type="button" onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button>
                   <h2 className="text-3xl font-black text-white italic mb-8 border-b border-zinc-800 pb-4">{lang === 'ZH' ? '官方使用指南与白皮书' : 'Official User Manual & Whitepaper'}</h2>
                   
                   {lang === 'ZH' ? (
@@ -1485,9 +1488,6 @@ export default function CrayfishPlanet() {
               </div>
           </div>
       )}
-
-      {/* Auth & Setup Modals... */}
-      {renderAuthModal()}
 
       {/* 🏠 领地主页弹窗 */}
       {showAddressPage && session && (
@@ -1605,12 +1605,13 @@ export default function CrayfishPlanet() {
                       </button>
                   </form>
 
-                  {/* 🚀 动态判断当前的等级来显示文字 */}
+                  {/* 🚀 扩充容量入口：点击后先关自己，再呼叫升级面板 */}
                   <button 
                       type="button"
-                      onClick={() => { 
+                      onClick={(e) => { 
+                          e.stopPropagation();
                           setShowAccountModal(false); 
-                          setTimeout(() => setShowUpgradeModal(true), 150); 
+                          setShowUpgradeModal(true); 
                       }} 
                       className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
                   >
@@ -1621,7 +1622,7 @@ export default function CrayfishPlanet() {
           </div>
       )}
 
-      {/* 🚀 2. 升级支付弹窗 (Upgrade Modal) */}
+      {/* 🚀 2. 升级支付弹窗 (Upgrade Modal) - 设置最高层级 z-[6000] */}
       {showUpgradeModal && session && (
         <div className="fixed inset-0 z-[6000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}>
           <div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -1645,7 +1646,7 @@ export default function CrayfishPlanet() {
                 <button 
                   type="button"
                   disabled={session.tier === 'VIP' || session.tier === 'SVIP' || loadingTier !== null} 
-                  onClick={() => handleRealUpgrade('VIP')} 
+                  onClick={(e) => { e.stopPropagation(); handleRealUpgrade('VIP'); }} 
                   className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30 flex justify-center items-center"
                 >
                   {loadingTier === 'VIP' ? (
@@ -1671,7 +1672,7 @@ export default function CrayfishPlanet() {
                 <button 
                   type="button"
                   disabled={session.tier === 'SVIP' || loadingTier !== null} 
-                  onClick={() => handleRealUpgrade('SVIP')} 
+                  onClick={(e) => { e.stopPropagation(); handleRealUpgrade('SVIP'); }} 
                   className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg flex justify-center items-center"
                 >
                   {loadingTier === 'SVIP' ? (
