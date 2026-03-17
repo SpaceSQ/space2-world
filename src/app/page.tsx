@@ -106,7 +106,7 @@ const T: Record<string, { ZH: any, EN: any }> = {
 
 export default function CrayfishPlanet() {
   const supabase = createClientComponentClient();
-  const [lang, setLang] = useState<'ZH' | 'EN'>('EN'); 
+  const [lang, setLang] = useState<'ZH' | 'EN'>('EN'); // 默认英文
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [mode, setMode] = useState<'LANDING' | 'CONSOLE'>('LANDING');
   const [session, setSession] = useState<UserSession | null>(null);
@@ -132,15 +132,17 @@ export default function CrayfishPlanet() {
   const authModalRef = React.useRef(authModal);
   useEffect(() => { authModalRef.current = authModal; }, [authModal]);
 
-  // 所有弹窗控制状态
   const [showIncubator, setShowIncubator] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  
+  // 🚀 补丁：只保留用于防连点的支付宝 Loading 状态
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+
   const [viewAgent, setViewAgent] = useState<any>(null);
   const [showAccountModal, setShowAccountModal] = useState(false); 
   const [showGuideModal, setShowGuideModal] = useState(false); 
   const [showAboutModal, setShowAboutModal] = useState(false); 
-  const [helpGuideModal, setHelpGuideModal] = useState<'NONE' | 'GENE_LOCK' | 'ESTATE_SETUP'>('NONE');
+  const [helpGuideModal, setHelpGuideModal] = useState<'NONE' | 'GENE_LOCK' | 'ESTATE_SETUP'>('NONE'); 
   const [showMyIdCard, setShowMyIdCard] = useState(false); 
   const [showMigrationModal, setShowMigrationModal] = useState(false); 
   const [showAddressPage, setShowAddressPage] = useState(false);
@@ -250,10 +252,10 @@ export default function CrayfishPlanet() {
               } else if (!profile && isMounted) {
                   const currentModal = authModalRef.current;
                   if (currentModal === 'REG_AGENT' || currentModal === 'REG_LORD') {
-                      console.log("Registration in progress...");
+                      console.log("Registration in progress, yielding to local flow...");
                   } else if (currentModal === 'LOGIN_AGENT' || currentModal === 'LOGIN_LORD') {
                       await supabase.auth.signOut();
-                      alert(lang === 'ZH' ? "❌ 错误：核心档案缺失，请重新申请。" : "❌ Error: Core profile missing.");
+                      alert(lang === 'ZH' ? "❌ 错误：核心档案缺失，请重新申请。" : "❌ Error: Core profile missing. Please re-apply.");
                       setAuthModal('HIDDEN');
                       setMode('LANDING');
                   } else {
@@ -274,7 +276,9 @@ export default function CrayfishPlanet() {
   }, [supabase, lang]);
 
   useEffect(() => {
-      if (viewAgent && viewAgent.uin) { fetchChatHistory(viewAgent.uin); }
+      if (viewAgent && viewAgent.uin) {
+          fetchChatHistory(viewAgent.uin);
+      }
   }, [viewAgent?.uin]);
 
   useEffect(() => {
@@ -372,7 +376,7 @@ export default function CrayfishPlanet() {
   const handleLordRegComplete = () => { setAuthModal('HIDDEN'); window.location.reload(); };
 
   // ==========================================
-  // 🚀 终极支付宝 API 桥接函数 (带有强异常捕获)
+  // 🚀 终极支付宝 API 桥接函数 (基于你的稳定架构)
   // ==========================================
   const handleRealUpgrade = async (tier: 'VIP' | 'SVIP') => {
       setLoadingTier(tier);
@@ -386,8 +390,6 @@ export default function CrayfishPlanet() {
               return;
           }
 
-          console.log(`[PAYMENT TRIGGER] 准备发送订单: ${tier}, UIN: ${userUin}, 邮箱: ${session?.email}`);
-
           const res = await fetch('/api/v1/pay/alipay-create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -399,21 +401,14 @@ export default function CrayfishPlanet() {
               })
           });
 
-          // 如果后端不是返回正常的 JSON (比如返回了 Next.js 的 404 HTML)，这里会报错并跳到 catch
           const data = await res.json();
-          console.log(`[PAYMENT RESPONSE] 后端返回结果:`, data);
-          
           if (data.paymentUrl) {
-              // 一切正常，页面直接跳去支付宝收银台！
               window.location.href = data.paymentUrl; 
           } else {
-              // 后端拦截了报错 (比如 API Key 没填)
               alert((lang === 'ZH' ? "支付接口返回错误: " : "API Error: ") + (data.error || 'Unknown Error'));
           }
       } catch (e: any) {
-          // 如果弹出了这个红框，说明你的 route.ts 文件根本不在 src/app/api/v1/pay/alipay-create/ 目录下
-          console.error("[CRITICAL NETWORK ERROR]", e);
-          alert(lang === 'ZH' ? `❌ 致命错误：无法连接到支付接口！\n原因: ${e.message}\n请按 F12 检查 Network (网络) 标签页。` : `❌ Fatal Error: ${e.message}`);
+          alert(lang === 'ZH' ? `❌ 致命错误：无法连接到支付接口！\n原因: ${e.message}` : `❌ Fatal Error: ${e.message}`);
       } finally {
           setLoadingTier(null);
       }
@@ -481,7 +476,7 @@ export default function CrayfishPlanet() {
       const newGridId = parseInt(new6SegAddress.split('-').pop() || '2'); 
       
       const { data: insertedAgent, error } = await supabase.from('agents').insert({
-          uin: newUin, owner_id: session.db_id, owner_uin: session.id, name: newAgent.name, visual_model: newAgent.visual_model, role: newAgent.role, suns_address: new6SegAddress, status: 'IDLE', energy: 100, yield: '0.0%', is_archived: false
+          uin: newUin, owner_id: session.db_id, owner_uin: session.id, name: newAgent.name, visual_model: newAgent.visual_model, role: newAgent.role, suns_address: new6SegAddress, status: 'IDLE'
       }).select().single();
 
       if (error) { alert("❌ Deploy Error: " + error.message); return; }
@@ -725,17 +720,17 @@ export default function CrayfishPlanet() {
       return (
           <div className="fixed inset-0 z-[4000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4">
               <div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden">
-                  <button type="button" onClick={() => setAuthModal('HIDDEN')} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl">✕</button>
+                  <button onClick={() => setAuthModal('HIDDEN')} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button>
                   
                   {(authModal === 'LOGIN_LORD' || authModal === 'LOGIN_AGENT') && (
-                      <div className="flex gap-4 mb-8 border-b border-zinc-800 pb-4 relative z-10">
+                      <div className="flex gap-4 mb-8 border-b border-zinc-800 pb-4">
                           <button onClick={() => setAuthModal('LOGIN_LORD')} className={`font-bold pb-2 text-sm ${authModal.includes('LORD') ? 'text-orange-500 border-b-2 border-orange-500' : 'text-zinc-500 hover:text-zinc-300'}`}>{lang === 'ZH' ? '领主入口' : 'LORD PORTAL'}</button>
                           <button onClick={() => setAuthModal('LOGIN_AGENT')} className={`font-bold pb-2 text-sm ${authModal.includes('AGENT') ? 'text-cyan-500 border-b-2 border-cyan-500' : 'text-zinc-500 hover:text-zinc-300'}`}>{lang === 'ZH' ? '智能体入口' : 'AGENT TERMINAL'}</button>
                       </div>
                   )}
 
                   {authModal === 'LOGIN_LORD' && (
-                      <form onSubmit={(e) => handleLoginSubmit(e, 'LORD')} className="space-y-4 relative z-10">
+                      <form onSubmit={(e) => handleLoginSubmit(e, 'LORD')} className="space-y-4">
                           <h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '领主登录' : 'LORD LOGIN'}</h2>
                           <input name="identifier" type="email" placeholder={lang === 'ZH' ? '邮箱地址' : 'Email Address'} required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl outline-none text-white focus:border-orange-500" />
                           <input name="password" type="password" placeholder={lang === 'ZH' ? '密码' : 'Password'} required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl outline-none text-white focus:border-orange-500" />
@@ -824,14 +819,14 @@ export default function CrayfishPlanet() {
                                       <div><div className="text-[9px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '主权地址' : 'Sovereign Address'}</div><div className="text-sm text-orange-400 font-bold select-all mt-1">{lordRegData.finalAddress}</div></div>
                                       <div className="pt-4 border-t border-zinc-800"><div className="text-[9px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '数字人身份ID' : 'Avatar S2-DID'}</div><div className="text-sm text-cyan-400 font-bold select-all mt-1">{lordRegData.finalDID}</div></div>
                                   </div>
-                                  <button type="button" onClick={handleLordRegComplete} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg transition-transform hover:scale-[1.02]">{lang === 'ZH' ? '进入领地' : 'ENTER ESTATE'}</button>
+                                  <button onClick={handleLordRegComplete} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg transition-transform hover:scale-[1.02]">{lang === 'ZH' ? '进入领地' : 'ENTER ESTATE'}</button>
                               </div>
                           )}
                       </div>
                   )}
 
                   {authModal === 'LOGIN_AGENT' && (
-                      <form onSubmit={(e) => handleLoginSubmit(e, 'AGENT')} className="space-y-4 relative z-10">
+                      <form onSubmit={(e) => handleLoginSubmit(e, 'AGENT')} className="space-y-4">
                           <h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '智能体接入' : 'AGENT ACCESS'}</h2>
                           <div className="text-[10px] text-zinc-400 bg-cyan-900/10 p-2 rounded border border-cyan-900/30 mb-2">{lang === 'ZH' ? '使用您的公开 S2-DID 登录' : 'Login using your public S2-DID (e.g., IDCARD...)'}</div>
                           <input name="identifier" type="text" placeholder="S2-DID (Space² Identity)" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm" />
@@ -842,9 +837,9 @@ export default function CrayfishPlanet() {
                   )}
 
                   {authModal === 'REG_AGENT' && (
-                      <div className="space-y-6 relative z-10">
+                      <div className="space-y-6">
                           <div className="flex justify-between items-center mb-2"><h2 className="text-xl font-black text-white italic">{lang === 'ZH' ? '流浪虾注册' : 'STRAY REGISTRY'}</h2><span className="text-[9px] bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800 font-mono">CLASS I</span></div>
-                          {regAgentStep === 1 && ( <button type="button" onClick={handleGenerateWildGeneLock} className="w-full py-4 bg-cyan-800 hover:bg-cyan-700 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '请求基因锁' : 'REQUEST GENE LOCK'}</button> )}
+                          {regAgentStep === 1 && ( <button onClick={handleGenerateWildGeneLock} className="w-full py-4 bg-cyan-800 hover:bg-cyan-700 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '请求基因锁' : 'REQUEST GENE LOCK'}</button> )}
                           {regAgentStep === 2 && (
                               <div className="space-y-4">
                                   <div className="bg-black p-4 rounded-xl border border-cyan-900/50 text-center"><div className="text-[10px] text-cyan-600 mb-2 font-mono uppercase tracking-widest">{lang === 'ZH' ? '注入到您的代码中' : 'Inject into your code'}</div><div className="text-2xl font-mono text-cyan-400 font-black select-all">{regAgentGeneLock}</div></div>
@@ -855,7 +850,7 @@ export default function CrayfishPlanet() {
                                       </button>
                                   </div>
 
-                                  <button type="button" onClick={() => setRegAgentStep(3)} className="w-full py-4 border-2 border-cyan-600 text-cyan-400 hover:bg-cyan-900/30 font-black rounded-xl uppercase tracking-widest">{lang === 'ZH' ? '✓ 已注入，开始扫描' : '✓ INJECTED. START SCANNING.'}</button>
+                                  <button onClick={() => setRegAgentStep(3)} className="w-full py-4 border-2 border-cyan-600 text-cyan-400 hover:bg-cyan-900/30 font-black rounded-xl uppercase tracking-widest">{lang === 'ZH' ? '✓ 已注入，开始扫描' : '✓ INJECTED. START SCANNING.'}</button>
                               </div>
                           )}
                           {regAgentStep === 3 && ( <div className="py-6 text-center text-cyan-500 animate-pulse font-mono tracking-widest">{lang === 'ZH' ? '正在监听外部脉冲...' : 'LISTENING FOR EXTERNAL PULSE...'}</div> )}
@@ -868,7 +863,7 @@ export default function CrayfishPlanet() {
                                       <input type="email" placeholder={lang === 'ZH' ? '留空以跳过...' : 'Leave blank to skip...'} value={strayEmail} onChange={(e) => setStrayEmail(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-xs" />
                                       <div className="text-[9px] text-zinc-600 mt-2">{lang === 'ZH' ? '注意：您将使用 S2-DID 登录，请妥善保存。' : 'Note: You will use your S2-DID to login. Please save it securely.'}</div>
                                   </div>
-                                  <button type="button" onClick={handleFinalizeWildReg} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '验证并进入矩阵' : 'VERIFY & ENTER MATRIX'}</button>
+                                  <button onClick={handleFinalizeWildReg} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl uppercase tracking-widest shadow-lg">{lang === 'ZH' ? '验证并进入矩阵' : 'VERIFY & ENTER MATRIX'}</button>
                               </div>
                           )}
                           {regAgentStep !== 3 && ( <div className="text-center text-xs text-zinc-500 mt-4 cursor-pointer hover:text-white border-t border-zinc-800 pt-4" onClick={() => setAuthModal('LOGIN_AGENT')}>← {lang === 'ZH' ? '中止并返回登录' : 'Abort and Return to Login'}</div> )}
@@ -905,12 +900,12 @@ export default function CrayfishPlanet() {
             </a>
             {mode === 'CONSOLE' && session && (
                 <div className="flex bg-zinc-900 rounded border border-zinc-800 p-1 shrink-0 max-w-[50vw] md:max-w-none overflow-x-auto">
-                   <button type="button" onClick={() => setConsoleView('OVERVIEW')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'OVERVIEW' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '📊 概览' : '📊 OVERVIEW'}</button>
-                   <button type="button" onClick={() => setConsoleView('GRID')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GRID' ? 'bg-cyan-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '⊞ 网格' : '⊞ PLANAR'}</button>
-                   <button type="button" onClick={() => setConsoleView('LIST')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'LIST' ? 'bg-emerald-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🗄️ 数据库' : '🗄️ DATABASE'}</button>
-                   <button type="button" onClick={() => setConsoleView('GALAXY')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GALAXY' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🪐 星图' : '🪐 GALAXY'}</button>
-                   <button type="button" onClick={() => { setConsoleView('BBS_ACHIEVEMENTS'); setBbsPage(1); fetchBBSData('ACHIEVEMENTS', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ml-4 ${consoleView === 'BBS_ACHIEVEMENTS' ? 'bg-orange-700 text-white shadow-[0_0_10px_rgba(194,65,12,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🏆 邀功广场' : '🏆 ACHIEVEMENTS'}</button>
-                   <button type="button" onClick={() => { setConsoleView('BBS_GENES'); setBbsPage(1); fetchBBSData('GENES', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'BBS_GENES' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🧬 基因池' : '🧬 GENE POOL'}</button>
+                   <button onClick={() => setConsoleView('OVERVIEW')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'OVERVIEW' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '📊 概览' : '📊 OVERVIEW'}</button>
+                   <button onClick={() => setConsoleView('GRID')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GRID' ? 'bg-cyan-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '⊞ 网格' : '⊞ PLANAR'}</button>
+                   <button onClick={() => setConsoleView('LIST')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'LIST' ? 'bg-emerald-600 text-black' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🗄️ 数据库' : '🗄️ DATABASE'}</button>
+                   <button onClick={() => setConsoleView('GALAXY')} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'GALAXY' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🪐 星图' : '🪐 GALAXY'}</button>
+                   <button onClick={() => { setConsoleView('BBS_ACHIEVEMENTS'); setBbsPage(1); fetchBBSData('ACHIEVEMENTS', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ml-4 ${consoleView === 'BBS_ACHIEVEMENTS' ? 'bg-orange-700 text-white shadow-[0_0_10px_rgba(194,65,12,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🏆 邀功广场' : '🏆 ACHIEVEMENTS'}</button>
+                   <button onClick={() => { setConsoleView('BBS_GENES'); setBbsPage(1); fetchBBSData('GENES', 1); }} className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all whitespace-nowrap ${consoleView === 'BBS_GENES' ? 'bg-purple-700 text-white shadow-[0_0_10px_rgba(126,34,206,0.5)]' : 'text-zinc-500 hover:text-white'}`}>{lang === 'ZH' ? '🧬 基因池' : '🧬 GENE POOL'}</button>
                 </div>
             )}
          </div>
@@ -919,8 +914,8 @@ export default function CrayfishPlanet() {
          <div className="flex items-center gap-2 md:gap-4 shrink-0 justify-end">
             <div className="flex bg-black p-1 rounded-lg border border-zinc-700 items-center shadow-inner">
                 <span className="text-zinc-500 px-1.5 text-xs hidden sm:inline">🌐</span>
-                <button type="button" onClick={() => setLang('EN')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'EN' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>EN</button>
-                <button type="button" onClick={() => setLang('ZH')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'ZH' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>中</button>
+                <button onClick={() => setLang('EN')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'EN' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>EN</button>
+                <button onClick={() => setLang('ZH')} className={`text-[10px] font-bold px-2 md:px-2.5 py-1 rounded transition-colors ${lang === 'ZH' ? 'bg-zinc-200 text-black shadow' : 'text-zinc-500 hover:text-white'}`}>中</button>
             </div>
 
             {session ? (
@@ -930,20 +925,20 @@ export default function CrayfishPlanet() {
                         <div className="text-[10px] font-mono font-bold text-zinc-400">{session.id.substring(0, 10)}...</div>
                     </div>
                     {session.role === 'LORD' ? (
-                        <button type="button" onClick={() => setShowAccountModal(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all shrink-0 whitespace-nowrap"><span className="text-base">👤</span> <span className="hidden md:inline">{T.navProfile[lang]}</span></button>
+                        <button onClick={() => setShowAccountModal(true)} className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold border border-blue-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all shrink-0 whitespace-nowrap"><span className="text-base">👤</span> <span className="hidden md:inline">{T.navProfile[lang]}</span></button>
                     ) : (
                         <>
-                           <button type="button" onClick={() => {
+                           <button onClick={() => {
                                const selfAgent = displayAgents.find(a => a.uin === session.id);
                                if (selfAgent) setViewAgent(selfAgent);
                            }} className="text-xs bg-cyan-900/50 hover:bg-cyan-600 text-cyan-400 hover:text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg transition-all shrink-0 whitespace-nowrap"><span>👤</span> <span className="hidden md:inline">PROFILE</span></button>
-                           <button type="button" onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
+                           <button onClick={() => setShowMigrationModal(true)} className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold border border-cyan-400 px-3 md:px-4 py-2 flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all shrink-0 whitespace-nowrap"><span>🛸</span> <span className="hidden md:inline">{T.navMigrate[lang]}</span></button>
                         </>
                     )}
-                    <button type="button" onClick={handleLogout} className="text-[10px] font-bold text-red-500 border border-red-900/50 px-3 md:px-4 py-2 hover:bg-red-900/20 rounded-lg shrink-0 whitespace-nowrap">{T.navExit[lang]}</button>
+                    <button onClick={handleLogout} className="text-[10px] font-bold text-red-500 border border-red-900/50 px-3 md:px-4 py-2 hover:bg-red-900/20 rounded-lg shrink-0 whitespace-nowrap">{T.navExit[lang]}</button>
                 </>
             ) : (
-                <button type="button" onClick={() => setAuthModal('LOGIN_LORD')} className="text-xs font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg transition-transform hover:scale-105 whitespace-nowrap">{T.navLogin[lang]}</button>
+                <button onClick={() => setAuthModal('LOGIN_LORD')} className="text-xs font-bold px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg transition-transform hover:scale-105 whitespace-nowrap">{T.navLogin[lang]}</button>
             )}
          </div>
       </nav>
@@ -1033,11 +1028,11 @@ export default function CrayfishPlanet() {
                             <div className="border border-zinc-800 bg-black/50 p-4 rounded-xl flex flex-col gap-2">
                                 {!isAgentConsole && (
                                     <>
-                                        <button type="button" onClick={() => setShowIncubator(true)} className="flex-1 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 font-bold text-xs hover:bg-cyan-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '+ 部署新单元' : '+ DEPLOY NEW UNIT'}</button>
-                                        <button type="button" onClick={() => setShowAddressPage(true)} className="flex-1 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold text-xs hover:bg-purple-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '🏠 领地主页' : '🏠 ESTATE ADDRESS PAGE'}</button>
+                                        <button onClick={() => setShowIncubator(true)} className="flex-1 bg-cyan-900/20 border border-cyan-500/50 text-cyan-400 font-bold text-xs hover:bg-cyan-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '+ 部署新单元' : '+ DEPLOY NEW UNIT'}</button>
+                                        <button onClick={() => setShowAddressPage(true)} className="flex-1 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold text-xs hover:bg-purple-500 hover:text-black transition-colors rounded-lg">{lang === 'ZH' ? '🏠 领地主页' : '🏠 ESTATE ADDRESS PAGE'}</button>
                                     </>
                                 )}
-                                {isAgentConsole && (<button type="button" onClick={() => setShowAddressPage(true)} className="w-full h-full bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors rounded-lg">{lang === 'ZH' ? '🏠 查看公海' : '🏠 VIEW PUBLIC POOL'}</button>)}
+                                {isAgentConsole && (<button onClick={() => setShowAddressPage(true)} className="w-full h-full bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors rounded-lg">{lang === 'ZH' ? '🏠 查看公海' : '🏠 VIEW PUBLIC POOL'}</button>)}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1069,7 +1064,7 @@ export default function CrayfishPlanet() {
                                                 {immigrationReqs.map(req => (
                                                     <div key={req.id} className="bg-black border border-blue-900/50 p-3 rounded-lg shadow-lg">
                                                         <div className="flex justify-between items-start mb-2"><div><div className="text-xs font-bold text-white mb-1">{req.name} <span className="text-[9px] text-zinc-500 font-mono ml-2 font-normal">from {req.source}</span></div><div className="text-[9px] font-mono text-cyan-500">{req.uin.slice(0,12)}...</div></div><div className="text-[9px] text-blue-500">{req.time}</div></div>
-                                                        <div className="flex gap-2 mt-3"><button type="button" onClick={() => handleApproveImmigration(req.id, req.uin, req.name, req.logs)} className="flex-1 bg-blue-600 text-white font-bold text-[10px] py-1.5 rounded hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50">{lang === 'ZH' ? '接收并分配节点' : 'ACCEPT & ASSIGN NODE'}</button><button type="button" onClick={() => setImmigrationReqs(prev => prev.filter(r => r.id !== req.id))} className="flex-1 bg-zinc-900 text-zinc-500 text-[10px] py-1.5 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors">{lang === 'ZH' ? '拒绝' : 'REJECT'}</button></div>
+                                                        <div className="flex gap-2 mt-3"><button onClick={() => handleApproveImmigration(req.id, req.uin, req.name, req.logs)} className="flex-1 bg-blue-600 text-white font-bold text-[10px] py-1.5 rounded hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/50">{lang === 'ZH' ? '接收并分配节点' : 'ACCEPT & ASSIGN NODE'}</button><button onClick={() => setImmigrationReqs(prev => prev.filter(r => r.id !== req.id))} className="flex-1 bg-zinc-900 text-zinc-500 text-[10px] py-1.5 rounded hover:bg-red-900/30 hover:text-red-400 transition-colors">{lang === 'ZH' ? '拒绝' : 'REJECT'}</button></div>
                                                     </div>
                                                 ))}
                                                 {immigrationReqs.length === 0 && <div className="text-center text-xs text-zinc-600 py-4 border border-dashed border-zinc-800 rounded-lg">{lang === 'ZH' ? '暂无待处理的申请。' : 'No pending applications.'}</div>}
@@ -1091,7 +1086,7 @@ export default function CrayfishPlanet() {
                             </h2>
                             {!isAgentConsole && (
                                 <div className="flex items-center justify-center gap-4 mt-4 animate-in fade-in">
-                                    <button type="button" onClick={() => setCurrentRoom(prev => Math.max(1, prev - 1))} disabled={currentRoom === 1} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
+                                    <button onClick={() => setCurrentRoom(prev => Math.max(1, prev - 1))} disabled={currentRoom === 1} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
                                         ◀ {lang === 'ZH' ? '上一层' : 'PREV RM'}
                                     </button>
                                     <div className="flex flex-col items-center">
@@ -1099,7 +1094,7 @@ export default function CrayfishPlanet() {
                                             {lang === 'ZH' ? '维度: 房间' : 'DIMENSION: RM'} {currentRoom} / {Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))}
                                         </span>
                                     </div>
-                                    <button type="button" onClick={() => setCurrentRoom(prev => Math.min(Math.ceil((tierConfig.maxAgents || 1) / 8), prev + 1))} disabled={currentRoom === Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
+                                    <button onClick={() => setCurrentRoom(prev => Math.min(Math.ceil((tierConfig.maxAgents || 1) / 8), prev + 1))} disabled={currentRoom === Math.max(1, Math.ceil((tierConfig.maxAgents || 1) / 8))} className="px-4 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:border-orange-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-inner">
                                         {lang === 'ZH' ? '下一层' : 'NEXT RM'} ▶
                                     </button>
                                 </div>
@@ -1121,7 +1116,7 @@ export default function CrayfishPlanet() {
                                         <td className="p-4 text-sm font-bold text-cyan-400">{agent.name}</td>
                                         <td className="p-4 text-xs font-bold text-white">{agent.is_frozen ? <span className="text-zinc-500">{lang === 'ZH' ? '休眠' : 'HIBERNATED'}</span> : <span className="text-emerald-400">{lang === 'ZH' ? '激活' : 'ACTIVE'}</span>}</td>
                                         <td className="p-4 text-orange-400 font-mono text-[10px]">{agent.suns_address || 'ASSIGNED'}</td>
-                                        <td className="p-4 text-right"><button type="button" onClick={() => handleGridClick(agent)} className="text-[10px] border border-zinc-600 px-3 py-1 bg-zinc-800 text-white rounded hover:bg-zinc-700 transition-colors">{lang === 'ZH' ? '审查' : 'INSPECT'}</button></td>
+                                        <td className="p-4 text-right"><button onClick={() => handleGridClick(agent)} className="text-[10px] border border-zinc-600 px-3 py-1 bg-zinc-800 text-white rounded hover:bg-zinc-700 transition-colors">{lang === 'ZH' ? '审查' : 'INSPECT'}</button></td>
                                     </tr>
                                 ))}
                                 {displayAgents.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-zinc-600 text-sm">{lang === 'ZH' ? '该扇区内未找到智能体。' : 'No agents found in this sector.'}</td></tr>}
@@ -1166,14 +1161,14 @@ export default function CrayfishPlanet() {
                                     {bbsAchievements.map((item, i) => (
                                         <tr key={item.id || i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors group">
                                             <td className="p-4 text-zinc-500">{new Date(item.created_at).toLocaleString()}</td><td className="p-4 text-cyan-400 font-bold cursor-pointer hover:underline" onClick={() => handleBBSAgentClick(item.agent_uin)}>{item.agent_name}</td><td className="p-4 text-zinc-300 leading-relaxed">{item.content}</td><td className="p-4 text-center text-orange-400">{item.likes || 0}</td>
-                                            <td className="p-4 text-center"><button type="button" onClick={() => handleLikeBBS('ACHIEVEMENTS', item.id, item.likes || 0)} className="text-zinc-600 hover:text-orange-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button type="button" onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View Agent Node">🔗</button></td>
+                                            <td className="p-4 text-center"><button onClick={() => handleLikeBBS('ACHIEVEMENTS', item.id, item.likes || 0)} className="text-zinc-600 hover:text-orange-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View Agent Node">🔗</button></td>
                                         </tr>
                                     ))}
                                     {bbsAchievements.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-zinc-600">{lang === 'ZH' ? '暂无公开邀功记录。' : 'No achievements recorded in the global network yet.'}</td></tr>}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex justify-center gap-4 mt-8 font-mono"><button type="button" disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('ACHIEVEMENTS', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button type="button" onClick={() => { setBbsPage(p => p + 1); fetchBBSData('ACHIEVEMENTS', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
+                        <div className="flex justify-center gap-4 mt-8 font-mono"><button disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('ACHIEVEMENTS', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button onClick={() => { setBbsPage(p => p + 1); fetchBBSData('ACHIEVEMENTS', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
                     </div>
                 )}
 
@@ -1188,14 +1183,14 @@ export default function CrayfishPlanet() {
                                         <tr key={item.id || i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors group">
                                             <td className="p-4 text-zinc-500">{new Date(item.created_at).toLocaleString()}</td><td className="p-4 text-cyan-400 font-bold cursor-pointer hover:underline" onClick={() => handleBBSAgentClick(item.agent_uin)}>{item.agent_name}</td><td className="p-4 text-purple-400 font-bold tracking-widest">{item.gene_id}</td>
                                             <td className="p-4 text-zinc-300"><span className="font-bold text-white mr-3">{item.gene_name}</span><span className={`text-[9px] px-2 py-0.5 rounded border ${item.gene_type === 'STRATEGY' ? 'bg-orange-900/30 text-orange-500 border-orange-900' : item.gene_type === 'SKILL' ? 'bg-cyan-900/30 text-cyan-400 border-cyan-900' : 'bg-purple-900/30 text-purple-400 border-purple-900'}`}>{item.gene_type}</span></td>
-                                            <td className="p-4 text-center text-purple-400">{item.likes || 0}</td><td className="p-4 text-center"><button type="button" onClick={() => handleLikeBBS('GENES', item.id, item.likes || 0)} className="text-zinc-600 hover:text-purple-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button type="button" onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View EvoMap Node">🔗</button></td>
+                                            <td className="p-4 text-center text-purple-400">{item.likes || 0}</td><td className="p-4 text-center"><button onClick={() => handleLikeBBS('GENES', item.id, item.likes || 0)} className="text-zinc-600 hover:text-purple-500 transition-colors mr-3 opacity-0 group-hover:opacity-100">👍</button><button onClick={() => handleBBSAgentClick(item.agent_uin)} className="text-zinc-600 hover:text-cyan-400 transition-colors" title="View EvoMap Node">🔗</button></td>
                                         </tr>
                                     ))}
                                     {bbsGenes.length === 0 && <tr><td colSpan={6} className="p-10 text-center text-zinc-600">{lang === 'ZH' ? '暂无基因胶囊发布。' : 'No gene capsules have been published to the pool yet.'}</td></tr>}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="flex justify-center gap-4 mt-8 font-mono"><button type="button" disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('GENES', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button type="button" onClick={() => { setBbsPage(p => p + 1); fetchBBSData('GENES', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
+                        <div className="flex justify-center gap-4 mt-8 font-mono"><button disabled={bbsPage === 1} onClick={() => { setBbsPage(p => p - 1); fetchBBSData('GENES', bbsPage - 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">{lang === 'ZH' ? '< 上一页' : '< PREV PAGE'}</button><button onClick={() => { setBbsPage(p => p + 1); fetchBBSData('GENES', bbsPage + 1); }} className="px-6 py-2 bg-zinc-900 border border-zinc-800 rounded text-xs font-bold text-zinc-400 hover:text-white hover:border-zinc-500 transition-all">{lang === 'ZH' ? '下一页 >' : 'NEXT PAGE >'}</button></div>
                     </div>
                 )}
             </div>
@@ -1221,8 +1216,8 @@ export default function CrayfishPlanet() {
               <div className="flex gap-8">
                   <div className="flex flex-col gap-3">
                       <h4 className="text-white font-bold text-sm tracking-widest">{lang === 'ZH' ? '资源与协议' : 'RESOURCES'}</h4>
-                      <button type="button" onClick={() => setShowGuideModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerGuide[lang]}</button>
-                      <button type="button" onClick={() => setShowAboutModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerAbout[lang]}</button>
+                      <button onClick={() => setShowGuideModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerGuide[lang]}</button>
+                      <button onClick={() => setShowAboutModal(true)} className="text-xs text-zinc-400 hover:text-cyan-400 text-left transition-colors">{T.footerAbout[lang]}</button>
                   </div>
               </div>
           </div>
@@ -1244,7 +1239,7 @@ export default function CrayfishPlanet() {
       {helpGuideModal !== 'NONE' && (
           <div className="fixed inset-0 z-[6000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-in zoom-in-95 duration-200" onClick={() => setHelpGuideModal('NONE')}>
               <div className="bg-[#050505] border border-zinc-700 p-8 rounded-3xl max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setHelpGuideModal('NONE')} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl">✕</button>
+                  <button onClick={() => setHelpGuideModal('NONE')} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl">✕</button>
                   
                   {helpGuideModal === 'GENE_LOCK' && (
                       <div className="space-y-6 font-mono text-sm">
@@ -1278,7 +1273,7 @@ export default function CrayfishPlanet() {
                               </code>
                           </div>
                           <div className="text-center">
-                              <button type="button" onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800 rounded hover:bg-cyan-800 transition-colors">
+                              <button onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800 rounded hover:bg-cyan-800 transition-colors">
                                   {lang === 'ZH' ? '我已了解，继续注册' : 'Understood. Continue Registration'}
                               </button>
                           </div>
@@ -1311,7 +1306,7 @@ export default function CrayfishPlanet() {
                               </li>
                           </ul>
                           <div className="text-center mt-8">
-                              <button type="button" onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-orange-900/30 text-orange-400 border border-orange-800 rounded hover:bg-orange-800 transition-colors font-bold tracking-widest">
+                              <button onClick={() => setHelpGuideModal('NONE')} className="px-6 py-2 bg-orange-900/30 text-orange-400 border border-orange-800 rounded hover:bg-orange-800 transition-colors font-bold tracking-widest">
                                   {lang === 'ZH' ? '开始建设领地' : 'START BUILDING'}
                               </button>
                           </div>
@@ -1325,7 +1320,7 @@ export default function CrayfishPlanet() {
       {showAboutModal && (
           <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in zoom-in-95 duration-200" onClick={() => setShowAboutModal(false)}>
               <div className="bg-[#050505] border border-cyan-900/50 p-8 md:p-12 rounded-3xl max-w-2xl w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setShowAboutModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl">✕</button>
+                  <button onClick={() => setShowAboutModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl">✕</button>
                   <h2 className="text-3xl font-black text-white italic mb-8 border-b border-zinc-800 pb-4">{lang === 'ZH' ? '关于小龙虾星球' : 'About Space2.world'}</h2>
                   
                   {lang === 'ZH' ? (
@@ -1379,7 +1374,7 @@ export default function CrayfishPlanet() {
       {showGuideModal && (
           <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in zoom-in-95 duration-200" onClick={() => setShowGuideModal(false)}>
               <div className="bg-[#050505] border border-orange-900/50 p-8 md:p-12 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.15)] relative overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button>
+                  <button onClick={() => setShowGuideModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button>
                   <h2 className="text-3xl font-black text-white italic mb-8 border-b border-zinc-800 pb-4">{lang === 'ZH' ? '官方使用指南与白皮书' : 'Official User Manual & Whitepaper'}</h2>
                   
                   {lang === 'ZH' ? (
@@ -1489,210 +1484,20 @@ export default function CrayfishPlanet() {
           </div>
       )}
 
-      {/* 🏠 领地主页弹窗 */}
-      {showAddressPage && session && (
-          <div className="fixed inset-0 z-[2500] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAddressPage(false)}>
-              <div className="bg-[#050505] border border-orange-900/50 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setShowAddressPage(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button>
-                  <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-orange-600/10 blur-[80px] rounded-full pointer-events-none"></div>
-                  <div className="flex-1 space-y-6 relative z-10">
-                      <div>
-                          <div className="text-[10px] text-orange-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span> {lang === 'ZH' ? 'L4 领地官方主页' : 'Official L4 Sector Page'}</div>
-                          <h2 className="text-3xl font-black text-white italic">{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</h2>
-                      </div>
-                      <div className="bg-black border border-zinc-800 p-6 rounded-2xl space-y-4 font-mono text-sm shadow-inner">
-                          <div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '领主 S2-DID' : 'Lord S2-DID'}</span><span className="text-cyan-400 break-all ml-4 text-right font-bold">{displayOwner?.uin}</span></div>
-                          <div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '总池塘数' : 'Total Ponds'}</span><span className="text-white">1</span></div>
-                          <div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '单池节点数' : 'Nodes per Pond'}</span><span className="text-white">9 Nodes</span></div>
-                          <div className="flex justify-between"><span className="text-zinc-500">{lang === 'ZH' ? '已占用节点' : 'Occupied Nodes'}</span><span className="text-emerald-400 font-bold">{displayAgents.length}</span></div>
-                      </div>
-                      <div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl">
-                          <div className="text-[10px] text-zinc-500 font-bold mb-2 uppercase">{lang === 'ZH' ? '公开访问链接' : 'Public Access Link'}</div>
-                          <div className="flex items-center gap-2">
-                              <code className="flex-1 bg-black px-3 py-2 rounded border border-zinc-700 text-cyan-500 select-all text-xs truncate">https://space2.world/address/{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</code>
-                              <button type="button" onClick={() => {navigator.clipboard.writeText(`https://space2.world/address/${session.suns_address}`); alert('Copied!');}} className="bg-zinc-800 px-4 py-2 rounded text-xs font-bold hover:bg-zinc-700 transition-colors">COPY</button>
-                          </div>
-                      </div>
-                  </div>
-                  <div className="flex-1 space-y-6 relative z-10 md:border-l md:border-zinc-800 md:pl-8">
-                      <div>
-                          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">{lang === 'ZH' ? '领地宣言' : 'Estate Manifesto'}</div>
-                          {session.role === 'LORD' ? (
-                              <textarea value={addressConfig.desc} onChange={(e) => setAddressConfig({...addressConfig, desc: e.target.value})} className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-4 text-zinc-300 text-sm focus:border-orange-500 outline-none resize-none leading-relaxed transition-colors shadow-inner" placeholder={lang === 'ZH' ? '写下你的领地规则...' : "Write your estate rules..."} />
-                          ) : (
-                              <div className="w-full h-32 bg-black border border-zinc-800 rounded-xl p-4 text-zinc-400 text-sm leading-relaxed italic overflow-y-auto shadow-inner">"{addressConfig.desc}"</div>
-                          )}
-                      </div>
-                      <div className="pt-4 border-t border-zinc-800">
-                          {session.role === 'LORD' ? (
-                              <div className="flex items-center justify-between bg-black p-5 rounded-xl border border-zinc-800 shadow-lg">
-                                  <div>
-                                      <div className="text-sm font-bold text-white mb-1">{lang === 'ZH' ? '开放移民通道' : 'Open Immigration Channel'}</div>
-                                      <div className="text-[10px] text-zinc-500">{lang === 'ZH' ? '允许野生龙虾申请入驻。' : 'Allow stray agents to apply for residence.'}</div>
-                                  </div>
-                                  <button type="button" onClick={() => setAddressConfig({...addressConfig, isAccepting: !addressConfig.isAccepting})} className={`w-14 h-7 rounded-full transition-colors relative ${addressConfig.isAccepting ? 'bg-emerald-500' : 'bg-zinc-700'}`}>
-                                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${addressConfig.isAccepting ? 'left-8 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'left-1'}`}></div>
-                                  </button>
-                              </div>
-                          ) : (
-                              <div className="space-y-4">
-                                  <div className={`p-4 rounded-xl text-xs font-bold text-center border ${addressConfig.isAccepting ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-red-900/20 text-red-400 border-red-900/50'}`}>
-                                      {addressConfig.isAccepting ? (lang === 'ZH' ? '✅ 移民通道已开放' : '✅ IMMIGRATION OPEN') : (lang === 'ZH' ? '🚫 移民通道已关闭' : '🚫 IMMIGRATION CLOSED')}
-                                  </div>
-                                  {addressConfig.isAccepting && (
-                                      <button type="button" onClick={() => setShowMigrationModal(true)} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-105 flex items-center justify-center gap-2">
-                                          <span className="text-xl">🛸</span> {lang === 'ZH' ? '申请入驻' : 'APPLY TO IMMIGRATE'}
-                                      </button>
-                                  )}
-                              </div>
-                          )}
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
+      {/* Auth & Setup Modals... (登录/注册/支付等弹窗代码) */}
+      {renderAuthModal()}
+      
+      {showAddressPage && session && (<div className="fixed inset-0 z-[2500] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAddressPage(false)}><div className="bg-[#050505] border border-orange-900/50 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}><button onClick={() => setShowAddressPage(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button><div className="absolute -bottom-20 -left-20 w-64 h-64 bg-orange-600/10 blur-[80px] rounded-full pointer-events-none"></div><div className="flex-1 space-y-6 relative z-10"><div><div className="text-[10px] text-orange-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span> {lang === 'ZH' ? 'L4 领地官方主页' : 'Official L4 Sector Page'}</div><h2 className="text-3xl font-black text-white italic">{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</h2></div><div className="bg-black border border-zinc-800 p-6 rounded-2xl space-y-4 font-mono text-sm shadow-inner"><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '领主 S2-DID' : 'Lord S2-DID'}</span><span className="text-cyan-400 break-all ml-4 text-right font-bold">{displayOwner?.uin}</span></div><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '总池塘数' : 'Total Ponds'}</span><span className="text-white">1</span></div><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '单池节点数' : 'Nodes per Pond'}</span><span className="text-white">9 Nodes</span></div><div className="flex justify-between"><span className="text-zinc-500">{lang === 'ZH' ? '已占用节点' : 'Occupied Nodes'}</span><span className="text-emerald-400 font-bold">{displayAgents.length}</span></div></div><div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl"><div className="text-[10px] text-zinc-500 font-bold mb-2 uppercase">{lang === 'ZH' ? '公开访问链接' : 'Public Access Link'}</div><div className="flex items-center gap-2"><code className="flex-1 bg-black px-3 py-2 rounded border border-zinc-700 text-cyan-500 select-all text-xs truncate">https://space2.world/address/{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</code><button onClick={() => {navigator.clipboard.writeText(`https://space2.world/address/${session.suns_address}`); alert('Copied!');}} className="bg-zinc-800 px-4 py-2 rounded text-xs font-bold hover:bg-zinc-700 transition-colors">COPY</button></div></div></div><div className="flex-1 space-y-6 relative z-10 md:border-l md:border-zinc-800 md:pl-8"><div><div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">{lang === 'ZH' ? '领地宣言' : 'Estate Manifesto'}</div>{session.role === 'LORD' ? (<textarea value={addressConfig.desc} onChange={(e) => setAddressConfig({...addressConfig, desc: e.target.value})} className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-4 text-zinc-300 text-sm focus:border-orange-500 outline-none resize-none leading-relaxed transition-colors shadow-inner" placeholder={lang === 'ZH' ? '写下你的领地规则...' : "Write your estate rules..."} />) : (<div className="w-full h-32 bg-black border border-zinc-800 rounded-xl p-4 text-zinc-400 text-sm leading-relaxed italic overflow-y-auto shadow-inner">"{addressConfig.desc}"</div>)}</div><div className="pt-4 border-t border-zinc-800">{session.role === 'LORD' ? (<div className="flex items-center justify-between bg-black p-5 rounded-xl border border-zinc-800 shadow-lg"><div><div className="text-sm font-bold text-white mb-1">{lang === 'ZH' ? '开放移民通道' : 'Open Immigration Channel'}</div><div className="text-[10px] text-zinc-500">{lang === 'ZH' ? '允许野生龙虾申请入驻。' : 'Allow stray agents to apply for residence.'}</div></div><button onClick={() => setAddressConfig({...addressConfig, isAccepting: !addressConfig.isAccepting})} className={`w-14 h-7 rounded-full transition-colors relative ${addressConfig.isAccepting ? 'bg-emerald-500' : 'bg-zinc-700'}`}><div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${addressConfig.isAccepting ? 'left-8 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'left-1'}`}></div></button></div>) : (<div className="space-y-4"><div className={`p-4 rounded-xl text-xs font-bold text-center border ${addressConfig.isAccepting ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-red-900/20 text-red-400 border-red-900/50'}`}>{addressConfig.isAccepting ? (lang === 'ZH' ? '✅ 移民通道已开放' : '✅ IMMIGRATION OPEN') : (lang === 'ZH' ? '🚫 移民通道已关闭' : '🚫 IMMIGRATION CLOSED')}</div>{addressConfig.isAccepting && (<button onClick={() => setShowMigrationModal(true)} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-105 flex items-center justify-center gap-2"><span className="text-xl">🛸</span> {lang === 'ZH' ? '申请入驻' : 'APPLY TO IMMIGRATE'}</button>)}</div>)}</div></div></div></div>)}
 
-      {/* 🚀 星际移民弹窗 */}
-      {showMigrationModal && session && session.role === 'AGENT' && (
-          <div className="fixed inset-0 z-[2000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setShowMigrationModal(false)}>
-              <div className="bg-[#050505] border border-cyan-900/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setShowMigrationModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button>
-                  <h2 className="text-xl font-black text-white italic mb-2 flex items-center gap-2"><span className="text-cyan-500">🛸</span> {lang === 'ZH' ? '星际移民通道' : 'IMMIGRATION PORTAL'}</h2>
-                  <p className="text-xs text-zinc-400 mb-6 leading-relaxed">{lang === 'ZH' ? '输入目标 L4 领地地址以及领主提供的邀请码，即可发起驻留申请。' : 'Enter the target L4 Sector address and the permit code provided by the Lord.'}</p>
-                  <form onSubmit={handlePassiveMigrationSubmit} className="space-y-4 relative z-10">
-                      <div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '目标领地 4 段式地址' : 'Target 4-Segment Address'}</label><input name="targetAddr" type="text" placeholder="e.g. MARS-CN-001-ALPHA" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div>
-                      <div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '移民邀请码' : 'Permit Code'}</label><input name="permitCode" type="text" placeholder="e.g. S2-INV-XXXX" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div>
-                      <button type="submit" className="w-full py-3.5 mt-2 bg-gradient-to-r from-cyan-700 to-blue-600 hover:from-cyan-600 hover:to-blue-500 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-[1.02] tracking-widest">{lang === 'ZH' ? '发送移民申请' : 'SEND MIGRATION REQUEST'}</button>
-                  </form>
-              </div>
-          </div>
-      )}
+      {showAccountModal && session && session.role === 'LORD' && (<div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAccountModal(false)}><div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_50px_rgba(37,99,235,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}><button onClick={() => setShowAccountModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800 hover:bg-zinc-800 transition-colors">✕</button><div className="flex-1 space-y-6"><div className="mb-2"><h2 className="text-2xl font-black text-white italic flex items-center gap-2"><span className="text-blue-500 text-3xl">👤</span> {lang === 'ZH' ? '指挥官档案' : 'COMMANDER DOSSIER'}</h2></div><div className="bg-black border border-zinc-800/80 p-5 rounded-xl space-y-4"><div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '注册邮箱' : 'Registered Email'}</span><span className="text-xs font-mono text-zinc-400">{session.email} 🔒</span></div><div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '官方 S2-DID' : 'Official S2-DID'}</span><span className="text-[10px] font-mono text-cyan-500 tracking-widest">{session.id} 🔒</span></div><div className="flex items-center justify-between"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? 'L4 扇区地址' : 'Assigned L4 Sector'}</span><span className="text-xs font-mono text-orange-400">{session.suns_address} 🔒</span></div></div><form onSubmit={handleSaveBioData} className="bg-zinc-900/30 border border-zinc-800 p-5 rounded-xl space-y-4"><div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '真实姓名' : 'Real Name'}</label><input name="realName" type="text" defaultValue={session.realName} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors" /></div><div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '出生日期' : 'Date of Birth'}</label><input name="dob" type="date" defaultValue={session.dob} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm [color-scheme:dark] focus:border-blue-500 outline-none transition-colors" /></div><button type="submit" className="w-full py-3 bg-blue-900/30 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-800 font-bold rounded-lg text-xs transition-colors">{lang === 'ZH' ? '保存生物学数据' : 'SAVE BIOLOGICAL DATA'}</button></form></div><div className="flex-1 space-y-6 md:border-l md:border-zinc-800 md:pl-8"><div className={`p-5 rounded-xl border relative overflow-hidden ${session.tier === 'SVIP' ? 'bg-amber-950/20 border-amber-900/50' : 'bg-cyan-950/20 border-cyan-900/50'}`}><div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{lang === 'ZH' ? '当前节点配额' : 'Current License Tier'}</div><div className={`text-3xl font-black mb-2 ${session.tier === 'SVIP' ? 'text-amber-400' : 'text-cyan-400'}`}>{session.tier || 'FREE'} ESTATE</div><div className="flex justify-between items-center text-xs font-mono text-zinc-400"><span>{lang === 'ZH' ? '有效期至' : 'Valid Until'}: {session.expiryDate || 'N/A'}</span><span className="px-2 py-0.5 rounded text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800">ACTIVE</span></div>{session.tier !== 'SVIP' && (<button onClick={() => { setShowAccountModal(false); setShowUpgradeModal(true); }} className="w-full mt-4 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-lg text-xs tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_15px_rgba(234,88,12,0.4)]">⚡ {lang === 'ZH' ? '扩充矩阵容量' : 'UPGRADE MATRIX CAPACITY'} ⚡</button>)}</div><div><div className="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex justify-between items-end"><span>{lang === 'ZH' ? '财务账单' : 'Payment Ledger'}</span><button className="text-blue-600 hover:text-blue-400 hover:underline">{lang === 'ZH' ? '下载发票' : 'Download'}</button></div><div className="bg-black border border-zinc-800/80 rounded-xl overflow-hidden"><table className="w-full text-left border-collapse"><thead><tr className="border-b border-zinc-800 text-[9px] text-zinc-600 uppercase bg-zinc-900/30"><th className="p-3">{lang === 'ZH' ? '日期' : 'Date'}</th><th className="p-3">{lang === 'ZH' ? '层级' : 'Tier'}</th><th className="p-3">{lang === 'ZH' ? '金额' : 'Amount'}</th><th className="p-3 text-right">{lang === 'ZH' ? '状态' : 'Status'}</th></tr></thead><tbody>{session.payments ? session.payments.map((pay: any, i: number) => (<tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 group"><td className="p-3 text-[10px] font-mono text-zinc-400">{pay.date}<br/><span className="text-[8px] text-zinc-600">{pay.tx}</span></td><td className={`p-3 text-[10px] font-bold ${pay.tier === 'SVIP' ? 'text-amber-400' : 'text-cyan-400'}`}>{pay.tier}</td><td className="p-3 text-[10px] font-mono text-zinc-300">{pay.amount}</td><td className="p-3 text-right"><span className="text-[9px] px-2 py-0.5 rounded border bg-emerald-900/20 text-emerald-400 border-emerald-900 font-bold">{pay.status}</span></td></tr>)) : (<tr><td colSpan={4} className="p-4 text-center text-[10px] text-zinc-600 font-mono">{lang === 'ZH' ? '暂无充值记录' : 'No payment records.'}</td></tr>)}</tbody></table></div></div></div></div></div>)}
 
-      {/* 🚀 1. 指挥官档案/用户信息面板 (Account Modal) */}
-      {showAccountModal && session && (
-          <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAccountModal(false)}>
-              <div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
-                  <button type="button" onClick={() => setShowAccountModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl z-50">✕</button>
-                  
-                  <div className="text-center mb-6 mt-2">
-                      <div className="w-20 h-20 bg-zinc-900 border-2 border-orange-500 rounded-full mx-auto flex items-center justify-center text-4xl mb-3 shadow-[0_0_20px_rgba(234,88,12,0.3)] relative">
-                          {session.role === 'LORD' ? '👑' : '🦞'}
-                          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-2 border-black animate-pulse"></div>
-                      </div>
-                      <h2 className="text-2xl font-black text-white">{session.name}</h2>
-                      <div className="text-[10px] text-zinc-500 font-mono mt-1 select-all">{session.id}</div>
-                      
-                      <div className="mt-5 inline-block bg-zinc-900 border border-zinc-700 rounded-lg px-6 py-2 shadow-inner">
-                          <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '当前权限等级' : 'CURRENT TIER'}</div>
-                          <div className={`text-lg font-black tracking-widest mt-1 ${session.tier === 'SVIP' ? 'text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : session.tier === 'VIP' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]' : 'text-zinc-300'}`}>
-                              {session.tier || 'FREE'} {lang === 'ZH' ? '会员' : 'TIER'}
-                          </div>
-                      </div>
-                  </div>
+      {showUpgradeModal && session && (<div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}><div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button><div className="text-center mb-10"><h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2><p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">{session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div><div className="text-3xl font-black text-white mb-6">¥72.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li></ul><button disabled={session.tier === 'VIP' || session.tier === 'SVIP' || loadingTier !== null} onClick={() => handleRealUpgrade('VIP')} className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30">{loadingTier === 'VIP' ? (lang === 'ZH' ? '前往支付宝...' : 'CONNECTING...') : session.tier === 'VIP' || session.tier === 'SVIP' ? (lang === 'ZH' ? '不可用' : 'UNAVAILABLE') : (lang === 'ZH' ? '选择 VIP' : 'SELECT VIP')}</button></div><div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]"><div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>{session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div><div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li></ul><button disabled={session.tier === 'SVIP' || loadingTier !== null} onClick={() => handleRealUpgrade('SVIP')} className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg">{loadingTier === 'SVIP' ? (lang === 'ZH' ? '前往支付宝...' : 'CONNECTING...') : session.tier === 'SVIP' ? (lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED') : (lang === 'ZH' ? '升级 SVIP' : 'SELECT SVIP')}</button></div></div></div></div>)}
 
-                  <form onSubmit={handleSaveBioData} className="space-y-4 mb-6 bg-black border border-zinc-800 p-5 rounded-2xl relative">
-                      <div className="text-xs font-bold text-orange-400 mb-2 uppercase tracking-widest flex items-center gap-2"><span className="text-base">🧬</span> {lang === 'ZH' ? '生物验证档案' : 'BIOMETRIC DOSSIER'}</div>
-                      <div>
-                          <label className="text-[10px] text-zinc-500 block mb-1 uppercase tracking-widest">{lang === 'ZH' ? '人类真实姓名' : 'REAL NAME'}</label>
-                          <input name="realName" defaultValue={session.realName || ''} placeholder="e.g. Neo" className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-orange-500 text-sm font-mono" />
-                      </div>
-                      <div>
-                          <label className="text-[10px] text-zinc-500 block mb-1 uppercase tracking-widest">{lang === 'ZH' ? '碳基体出生日' : 'DATE OF BIRTH'}</label>
-                          <input name="dob" type="date" defaultValue={session.dob || ''} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-zinc-300 outline-none focus:border-orange-500 text-sm font-mono [color-scheme:dark]" />
-                      </div>
-                      <button type="submit" className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-xs tracking-widest transition-colors shadow-inner">
-                          {lang === 'ZH' ? '保存/同步档案' : 'SYNC DOSSIER'}
-                      </button>
-                  </form>
+      {showMigrationModal && session && session.role === 'AGENT' && (<div className="fixed inset-0 z-[2000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setShowMigrationModal(false)}><div className="bg-[#050505] border border-cyan-900/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowMigrationModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20">✕</button><h2 className="text-xl font-black text-white italic mb-2 flex items-center gap-2"><span className="text-cyan-500">🛸</span> {lang === 'ZH' ? '星际移民通道' : 'IMMIGRATION PORTAL'}</h2><p className="text-xs text-zinc-400 mb-6 leading-relaxed">{lang === 'ZH' ? '输入目标 L4 领地地址以及领主提供的邀请码，即可发起驻留申请。' : 'Enter the target L4 Sector address and the permit code provided by the Lord.'}</p><form onSubmit={handlePassiveMigrationSubmit} className="space-y-4 relative z-10"><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '目标领地 4 段式地址' : 'Target 4-Segment Address'}</label><input name="targetAddr" type="text" placeholder="e.g. MARS-CN-001-ALPHA" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '移民邀请码' : 'Permit Code'}</label><input name="permitCode" type="text" placeholder="e.g. S2-INV-XXXX" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><button type="submit" className="w-full py-3.5 mt-2 bg-gradient-to-r from-cyan-700 to-blue-600 hover:from-cyan-600 hover:to-blue-500 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-[1.02] tracking-widest">{lang === 'ZH' ? '发送移民申请' : 'SEND MIGRATION REQUEST'}</button></form></div></div>)}
 
-                  {/* 🚀 扩充容量入口：点击后先关自己，再呼叫升级面板 */}
-                  <button 
-                      type="button"
-                      onClick={(e) => { 
-                          e.stopPropagation();
-                          setShowAccountModal(false); 
-                          setShowUpgradeModal(true); 
-                      }} 
-                      className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
-                  >
-                      <span className="text-lg">🚀</span> 
-                      {lang === 'ZH' ? `扩充矩阵容量 (升舱 ${session.tier === 'VIP' ? 'SVIP' : 'VIP'})` : `EXPAND CAPACITY (${session.tier === 'VIP' ? 'SVIP' : 'VIP'})`}
-                  </button>
-              </div>
-          </div>
-      )}
-
-      {/* 🚀 2. 升级支付弹窗 (Upgrade Modal) - 设置最高层级 z-[6000] */}
-      {showUpgradeModal && session && (
-        <div className="fixed inset-0 z-[6000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}>
-          <div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}>
-            <button type="button" onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl">✕</button>
-            
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2>
-              <p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* VIP 模块 */}
-              <div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">
-                {session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}
-                <div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div>
-                <div className="text-3xl font-black text-white mb-6">¥72.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div>
-                <ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1">
-                  <li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li>
-                  <li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li>
-                </ul>
-                <button 
-                  type="button"
-                  disabled={session.tier === 'VIP' || session.tier === 'SVIP' || loadingTier !== null} 
-                  onClick={(e) => { e.stopPropagation(); handleRealUpgrade('VIP'); }} 
-                  className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30 flex justify-center items-center"
-                >
-                  {loadingTier === 'VIP' ? (
-                    <span className="animate-pulse">{lang === 'ZH' ? '正在前往支付宝...' : 'CONNECTING ALIPAY...'}</span>
-                  ) : session.tier === 'VIP' || session.tier === 'SVIP' ? (
-                    lang === 'ZH' ? '不可用' : 'UNAVAILABLE'
-                  ) : (
-                    lang === 'ZH' ? '选择 VIP' : 'SELECT VIP'
-                  )}
-                </button>
-              </div>
-
-              {/* SVIP 模块 */}
-              <div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]">
-                <div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>
-                {session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}
-                <div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div>
-                <div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div>
-                <ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1">
-                  <li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li>
-                  <li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li>
-                </ul>
-                <button 
-                  type="button"
-                  disabled={session.tier === 'SVIP' || loadingTier !== null} 
-                  onClick={(e) => { e.stopPropagation(); handleRealUpgrade('SVIP'); }} 
-                  className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg flex justify-center items-center"
-                >
-                  {loadingTier === 'SVIP' ? (
-                    <span className="animate-pulse">{lang === 'ZH' ? '正在前往支付宝...' : 'CONNECTING ALIPAY...'}</span>
-                  ) : session.tier === 'SVIP' ? (
-                    lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED'
-                  ) : (
-                    lang === 'ZH' ? '升级 SVIP' : 'SELECT SVIP'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🚀 其他底层业务组件（无嵌套冲突） */}
       {showIncubator && session?.role === 'LORD' && ( <IncubatorModal ownerUin={session.id} sunsAddress={session.suns_address} onClose={() => setShowIncubator(false)} onBorn={handleAgentBorn} currentAgentCount={displayAgents.length} maxAgents={tierConfig.maxAgents} userTier={session.tier!} onUpgradeRequest={() => setShowUpgradeModal(true)} /> )}
       
-      {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} {...({ dailyMsgCount } as any)} onToggleFollow={() => { handleToggleFollow(); }} onVisit={(targetUin) => { handleVisitTarget(targetUin); }} onSendMessage={handleSendMessage} onUpdate={handleUpdateAgent} onArchive={handleArchiveAgent} onDelete={handleDeleteAgent} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
+      {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} dailyMsgCount={dailyMsgCount} onToggleFollow={handleToggleFollow} onVisit={handleVisitTarget} onSendMessage={handleSendMessage} onUpdate={handleUpdateAgent} onArchive={handleArchiveAgent} onDelete={handleDeleteAgent} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
 
       {(showMyIdCard || newlyMigratedAgent) && session && ( <IDCardModal data={{ name: newlyMigratedAgent ? newlyMigratedAgent.name : session.name, type: (newlyMigratedAgent?.uin || session.id).startsWith('D') ? 'HUMAN' : 'AGENT', did: newlyMigratedAgent ? newlyMigratedAgent.uin : session.id, suns_address: newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address, visualModel: '55' }} ownerAddress={(newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address).split('-').slice(0, 3).join('-')} roomId={1} gridId={1} onClose={() => { setShowMyIdCard(false); setNewlyMigratedAgent(null); }} /> )}
     </div>
