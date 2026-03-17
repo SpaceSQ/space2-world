@@ -134,8 +134,7 @@ export default function CrayfishPlanet() {
 
   const [showIncubator, setShowIncubator] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<{show: boolean, tier: MembershipTier, email: string} | null>(null);
-  const [checkoutDuration, setCheckoutDuration] = useState<1 | 3 | 12>(1);
+  const [checkoutData, setCheckoutData] = useState<{show: boolean, tier: 'VIP' | 'SVIP', email: string} | null>(null);  const [checkoutDuration, setCheckoutDuration] = useState<1 | 3 | 12>(1);
   const [isProcessingPay, setIsProcessingPay] = useState(false);
 
   const [viewAgent, setViewAgent] = useState<any>(null);
