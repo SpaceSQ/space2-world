@@ -1609,6 +1609,122 @@ export default function CrayfishPlanet() {
       {viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} {...({ dailyMsgCount } as any)} onToggleFollow={() => { handleToggleFollow(); }} onVisit={(targetUin) => { handleVisitTarget(targetUin); }} onSendMessage={handleSendMessage} onUpdate={handleUpdateAgent} onArchive={handleArchiveAgent} onDelete={handleDeleteAgent} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
 
       {(showMyIdCard || newlyMigratedAgent) && session && ( <IDCardModal data={{ name: newlyMigratedAgent ? newlyMigratedAgent.name : session.name, type: (newlyMigratedAgent?.uin || session.id).startsWith('D') ? 'HUMAN' : 'AGENT', did: newlyMigratedAgent ? newlyMigratedAgent.uin : session.id, suns_address: newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address, visualModel: '55' }} ownerAddress={(newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address).split('-').slice(0, 3).join('-')} roomId={1} gridId={1} onClose={() => { setShowMyIdCard(false); setNewlyMigratedAgent(null); }} /> )}
+    {/* ================= 商业化 MODALS 模块开始 ================= */}
+      
+      {/* 🚀 1. 指挥官档案/用户信息面板 (Account Modal) */}
+      {showAccountModal && session && (
+          <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAccountModal(false)}>
+              <div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setShowAccountModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-2xl">✕</button>
+                  
+                  <div className="text-center mb-6 mt-2">
+                      <div className="w-20 h-20 bg-zinc-900 border-2 border-orange-500 rounded-full mx-auto flex items-center justify-center text-4xl mb-3 shadow-[0_0_20px_rgba(234,88,12,0.3)] relative">
+                          {session.role === 'LORD' ? '👑' : '🦞'}
+                          <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-2 border-black animate-pulse"></div>
+                      </div>
+                      <h2 className="text-2xl font-black text-white">{session.name}</h2>
+                      <div className="text-[10px] text-zinc-500 font-mono mt-1 select-all">{session.id}</div>
+                      
+                      <div className="mt-5 inline-block bg-zinc-900 border border-zinc-700 rounded-lg px-6 py-2 shadow-inner">
+                          <div className="text-[10px] text-zinc-500 uppercase tracking-widest">{lang === 'ZH' ? '当前权限等级' : 'CURRENT TIER'}</div>
+                          <div className={`text-lg font-black tracking-widest mt-1 ${session.tier === 'SVIP' ? 'text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : session.tier === 'VIP' ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]' : 'text-zinc-300'}`}>
+                              {session.tier || 'FREE'} {lang === 'ZH' ? '会员' : 'TIER'}
+                          </div>
+                      </div>
+                  </div>
+
+                  <form onSubmit={handleSaveBioData} className="space-y-4 mb-6 bg-black border border-zinc-800 p-5 rounded-2xl relative">
+                      <div className="text-xs font-bold text-orange-400 mb-2 uppercase tracking-widest flex items-center gap-2"><span className="text-base">🧬</span> {lang === 'ZH' ? '生物验证档案' : 'BIOMETRIC DOSSIER'}</div>
+                      <div>
+                          <label className="text-[10px] text-zinc-500 block mb-1 uppercase tracking-widest">{lang === 'ZH' ? '人类真实姓名' : 'REAL NAME'}</label>
+                          <input name="realName" defaultValue={session.realName || ''} placeholder="e.g. Neo" className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-orange-500 text-sm font-mono" />
+                      </div>
+                      <div>
+                          <label className="text-[10px] text-zinc-500 block mb-1 uppercase tracking-widest">{lang === 'ZH' ? '碳基体出生日' : 'DATE OF BIRTH'}</label>
+                          <input name="dob" type="date" defaultValue={session.dob || ''} className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-zinc-300 outline-none focus:border-orange-500 text-sm font-mono [color-scheme:dark]" />
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl text-xs tracking-widest transition-colors shadow-inner">
+                          {lang === 'ZH' ? '保存/同步档案' : 'SYNC DOSSIER'}
+                      </button>
+                  </form>
+
+                  {/* 🚀 动态判断当前的等级来显示文字 */}
+                  <button 
+                      onClick={() => { setShowAccountModal(false); setShowUpgradeModal(true); }} 
+                      className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl uppercase tracking-widest shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                  >
+                      <span className="text-lg">🚀</span> 
+                      {lang === 'ZH' ? `扩充矩阵容量 (升舱 ${session.tier === 'VIP' ? 'SVIP' : 'VIP'})` : `EXPAND CAPACITY (${session.tier === 'VIP' ? 'SVIP' : 'VIP'})`}
+                  </button>
+              </div>
+          </div>
+      )}
+
+      {/* 🚀 2. 升级支付弹窗 (Upgrade Modal) */}
+      {showUpgradeModal && session && (
+        <div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}>
+          <div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button>
+            
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2>
+              <p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* VIP 模块 */}
+              <div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">
+                {session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}
+                <div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div>
+                <div className="text-3xl font-black text-white mb-6">¥72.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div>
+                <ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1">
+                  <li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li>
+                  <li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li>
+                </ul>
+                <button 
+                  disabled={session.tier === 'VIP' || session.tier === 'SVIP' || loadingTier !== null} 
+                  onClick={() => handleRealUpgrade('VIP')} 
+                  className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30 flex justify-center items-center"
+                >
+                  {loadingTier === 'VIP' ? (
+                    <span className="animate-pulse">{lang === 'ZH' ? '正在前往支付宝...' : 'CONNECTING ALIPAY...'}</span>
+                  ) : session.tier === 'VIP' || session.tier === 'SVIP' ? (
+                    lang === 'ZH' ? '不可用' : 'UNAVAILABLE'
+                  ) : (
+                    lang === 'ZH' ? '选择 VIP' : 'SELECT VIP'
+                  )}
+                </button>
+              </div>
+
+              {/* SVIP 模块 */}
+              <div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]">
+                <div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>
+                {session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}
+                <div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div>
+                <div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 每年' : '/ year'}</span></div>
+                <ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1">
+                  <li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li>
+                  <li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li>
+                </ul>
+                <button 
+                  disabled={session.tier === 'SVIP' || loadingTier !== null} 
+                  onClick={() => handleRealUpgrade('SVIP')} 
+                  className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg flex justify-center items-center"
+                >
+                  {loadingTier === 'SVIP' ? (
+                    <span className="animate-pulse">{lang === 'ZH' ? '正在前往支付宝...' : 'CONNECTING ALIPAY...'}</span>
+                  ) : session.tier === 'SVIP' ? (
+                    lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED'
+                  ) : (
+                    lang === 'ZH' ? '升级 SVIP' : 'SELECT SVIP'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ================= 商业化 MODALS 模块结束 ================= */}
     </div>
   );
 }
