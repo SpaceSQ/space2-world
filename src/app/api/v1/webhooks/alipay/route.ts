@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { AlipaySdk } from 'alipay-sdk';
 import { createClient } from '@supabase/supabase-js';
 
-// 初始化上帝权限的 Supabase
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -10,7 +9,6 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    // 1. 获取支付宝发来的异步通知数据
     const formData = await request.formData();
     const params = Object.fromEntries(formData.entries());
 
@@ -23,20 +21,39 @@ export async function POST(request: Request) {
       camelcase: true,
     });
 
-    // 2. 验签：确认真的是支付宝发来的，不是黑客伪造的
+    // 1. 验证签名（防黑客伪造）
     const isValid = alipaySdk.checkNotifySign(params);
     if (!isValid) {
       console.error('❌ [WEBHOOK] 签名验证失败！');
       return new NextResponse('failure', { status: 400 });
     }
 
-    // 3. 只处理支付成功的状态
+    // 2. 只处理支付成功的通知
     const tradeStatus = params['trade_status'];
     if (tradeStatus !== 'TRADE_SUCCESS' && tradeStatus !== 'TRADE_FINISHED') {
       return new NextResponse('success'); 
     }
 
-    // 🚀 4. 打开支付宝退回来的“公文包” (passback_params)
+    const outTradeNo = params.out_trade_no as string;
+
+    // 🚀 3. 【防重护盾】：去数据库查这个订单
+    const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('out_trade_no', outTradeNo)
+        .single();
+
+    if (orderError || !orderData) {
+        console.error(`❌ [WEBHOOK] 数据库中找不到此订单: ${outTradeNo}`);
+        return new NextResponse('success'); // 回复 success 让支付宝别再发了
+    }
+
+    if (orderData.status === 'PAID') {
+        console.log(`⚠️ [WEBHOOK] 订单 ${outTradeNo} 已经处理过，跳过重复发货。`);
+        return new NextResponse('success');
+    }
+
+    // 🚀 4. 打开支付宝退回来的“公文包”
     const passbackStr = params['passback_params'] as string;
     if (!passbackStr) {
         console.error('❌ [WEBHOOK] 找不到公文包透传参数！');
@@ -44,29 +61,47 @@ export async function POST(request: Request) {
     }
 
     const { userId, tier, duration } = JSON.parse(decodeURIComponent(passbackStr));
-    console.log(`📦 [WEBHOOK] 解析公文包成功！准备为用户 ${userId} 升舱为 ${tier}！`);
+    
+    // 🚀 5. 【叠加引擎】：查询用户当前的有效期
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('expiry_date')
+        .eq('id', userId)
+        .single();
 
-    // 5. 计算过期时间
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + (duration || 1));
+    let newExpiryDate = new Date();
+    // 如果用户已有有效期，且还在未来，就在那个日期基础上加；否则从今天开始加
+    if (profile && profile.expiry_date) {
+        const currentExpiry = new Date(profile.expiry_date);
+        if (currentExpiry > new Date()) {
+            newExpiryDate = currentExpiry;
+        }
+    }
+    
+    // 加上他买的月份
+    newExpiryDate.setMonth(newExpiryDate.getMonth() + (duration || 1));
+    const finalExpiryStr = newExpiryDate.toISOString().split('T')[0];
 
-    // 🚀 6. 直接暴力升舱！更新 profiles 表
-    const { error: updateError } = await supabase
+    // 🚀 6. 开启数据库事务（原子更新）：更新用户等级 + 标记订单已完成
+    await supabase
         .from('profiles')
         .update({ 
             tier: tier,
-            expiry_date: expiresAt.toISOString().split('T')[0] // 更新有效期
+            expiry_date: finalExpiryStr
         })
         .eq('id', userId);
 
-    if (updateError) {
-        console.error('❌ [WEBHOOK] 数据库升舱失败:', updateError);
-        return new NextResponse('failure', { status: 500 });
-    }
+    await supabase
+        .from('orders')
+        .update({ 
+            status: 'PAID', // 标记为已支付，下次就不会重复发货了
+            trade_no: params.trade_no // 记录支付宝的官方交易流水号，方便以后查账
+        })
+        .eq('out_trade_no', outTradeNo);
 
-    console.log(`✅ [WEBHOOK] 发货大成功！用户 ${userId} 已成为尊贵的 ${tier}！`);
+    console.log(`✅ [WEBHOOK] 发货大成功！用户 ${userId} 已升舱为 ${tier}，有效期至 ${finalExpiryStr}！`);
 
-    // 🚨 7. 必须给支付宝回复文本 success，否则它会一直疯狂重发
+    // 🚨 7. 必须回复纯文本的 success
     return new NextResponse('success');
 
   } catch (error: any) {
