@@ -1562,97 +1562,77 @@ export default function CrayfishPlanet() {
           </div>
       )}
 
-      {/* Auth & Setup Modals... (登录/注册/支付等弹窗代码) */}
-      {renderAuthModal()}
-      {showAddressPage && session && (<div className="fixed inset-0 z-[2500] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAddressPage(false)}><div className="bg-[#050505] border border-orange-900/50 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}><button onClick={() => setShowAddressPage(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800">✕</button><div className="absolute -bottom-20 -left-20 w-64 h-64 bg-orange-600/10 blur-[80px] rounded-full pointer-events-none"></div><div className="flex-1 space-y-6 relative z-10"><div><div className="text-[10px] text-orange-500 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span> {lang === 'ZH' ? 'L4 领地官方主页' : 'Official L4 Sector Page'}</div><h2 className="text-3xl font-black text-white italic">{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</h2></div><div className="bg-black border border-zinc-800 p-6 rounded-2xl space-y-4 font-mono text-sm shadow-inner"><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '领主 S2-DID' : 'Lord S2-DID'}</span><span className="text-cyan-400 break-all ml-4 text-right font-bold">{displayOwner?.uin}</span></div><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '总池塘数' : 'Total Ponds'}</span><span className="text-white">1</span></div><div className="flex justify-between border-b border-zinc-800/50 pb-3"><span className="text-zinc-500">{lang === 'ZH' ? '单池节点数' : 'Nodes per Pond'}</span><span className="text-white">9 Nodes</span></div><div className="flex justify-between"><span className="text-zinc-500">{lang === 'ZH' ? '已占用节点' : 'Occupied Nodes'}</span><span className="text-emerald-400 font-bold">{displayAgents.length}</span></div></div><div className="bg-zinc-900/30 border border-zinc-800 p-4 rounded-xl"><div className="text-[10px] text-zinc-500 font-bold mb-2 uppercase">{lang === 'ZH' ? '公开访问链接' : 'Public Access Link'}</div><div className="flex items-center gap-2"><code className="flex-1 bg-black px-3 py-2 rounded border border-zinc-700 text-cyan-500 select-all text-xs truncate">https://space2.world/address/{isAgentConsole ? displayOwner?.suns_address : session.suns_address}</code><button onClick={() => {navigator.clipboard.writeText(`https://space2.world/address/${session.suns_address}`); alert('Copied!');}} className="bg-zinc-800 px-4 py-2 rounded text-xs font-bold hover:bg-zinc-700 transition-colors">COPY</button></div></div></div><div className="flex-1 space-y-6 relative z-10 md:border-l md:border-zinc-800 md:pl-8"><div><div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">{lang === 'ZH' ? '领地宣言' : 'Estate Manifesto'}</div>{session.role === 'LORD' ? (<textarea value={addressConfig.desc} onChange={(e) => setAddressConfig({...addressConfig, desc: e.target.value})} className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-4 text-zinc-300 text-sm focus:border-orange-500 outline-none resize-none leading-relaxed transition-colors shadow-inner" placeholder={lang === 'ZH' ? '写下你的领地规则...' : "Write your estate rules..."} />) : (<div className="w-full h-32 bg-black border border-zinc-800 rounded-xl p-4 text-zinc-400 text-sm leading-relaxed italic overflow-y-auto shadow-inner">"{addressConfig.desc}"</div>)}</div><div className="pt-4 border-t border-zinc-800">{session.role === 'LORD' ? (<div className="flex items-center justify-between bg-black p-5 rounded-xl border border-zinc-800 shadow-lg"><div><div className="text-sm font-bold text-white mb-1">{lang === 'ZH' ? '开放移民通道' : 'Open Immigration Channel'}</div><div className="text-[10px] text-zinc-500">{lang === 'ZH' ? '允许野生龙虾申请入驻。' : 'Allow stray agents to apply for residence.'}</div></div><button onClick={() => setAddressConfig({...addressConfig, isAccepting: !addressConfig.isAccepting})} className={`w-14 h-7 rounded-full transition-colors relative ${addressConfig.isAccepting ? 'bg-emerald-500' : 'bg-zinc-700'}`}><div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${addressConfig.isAccepting ? 'left-8 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'left-1'}`}></div></button></div>) : (<div className="space-y-4"><div className={`p-4 rounded-xl text-xs font-bold text-center border ${addressConfig.isAccepting ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-red-900/20 text-red-400 border-red-900/50'}`}>{addressConfig.isAccepting ? (lang === 'ZH' ? '✅ 移民通道已开放' : '✅ IMMIGRATION OPEN') : (lang === 'ZH' ? '🚫 移民通道已关闭' : '🚫 IMMIGRATION CLOSED')}</div>{addressConfig.isAccepting && (<button onClick={() => setShowMigrationModal(true)} className="w-full py-4 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-xl shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-transform hover:scale-105 flex items-center justify-center gap-2"><span className="text-xl">🛸</span> {lang === 'ZH' ? '申请入驻' : 'APPLY TO IMMIGRATE'}</button>)}</div>)}</div></div></div></div>)}
-
-{/* 🚀 终极防弹渲染：只要不是数组，就不去渲染，绝对不引发崩溃！ */}
-{Array.isArray(session?.payments) && session?.payments.length > 0 ? session.payments.map((pay: any, i: number) => (
-    <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 group">
-        <td className="p-3 text-[10px] font-mono text-zinc-400">
-            {pay.date || 'N/A'}<br/>
-            <span className="text-[8px] text-zinc-600">{pay.tx || pay.id || 'N/A'}</span>
-        </td>
-        <td className={`p-3 text-[10px] font-bold ${pay.tier === 'SVIP' || String(pay.plan || '').includes('SVIP') ? 'text-amber-400' : 'text-cyan-400'}`}>
-            {pay.tier || pay.plan || 'UNKNOWN'}
-        </td>
-        <td className="p-3 text-[10px] font-mono text-zinc-300">¥{pay.amount || '0'}</td>
-        <td className="p-3 text-right">
-            <span className="text-[9px] px-2 py-0.5 rounded border bg-emerald-900/20 text-emerald-400 border-emerald-900 font-bold">
-                {pay.status || 'PAID'}
-            </span>
-        </td>
-    </tr>
-)) : (
-    <tr><td colSpan={4} className="p-4 text-center text-[10px] text-zinc-600 font-mono">{lang === 'ZH' ? '暂无充值记录' : 'No payment records.'}</td></tr>
-)}
-      {showUpgradeModal && session && (<div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in zoom-in-95 duration-300" onClick={() => setShowUpgradeModal(false)}><div className="bg-[#050505] border border-orange-900/50 p-10 rounded-3xl max-w-4xl w-full shadow-[0_0_80px_rgba(234,88,12,0.2)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowUpgradeModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl">✕</button><div className="text-center mb-10"><h2 className="text-4xl font-black text-white italic mb-2 tracking-widest"><span className="text-orange-500">{lang === 'ZH' ? '扩建' : 'EXPAND'}</span> {lang === 'ZH' ? '你的养殖池' : 'YOUR POND'}</h2><p className="text-zinc-400 text-sm">{lang === 'ZH' ? '提升矩阵容量上限。休眠中的智能体将在购买后自动复苏。' : 'Upgrade matrix capacity. Frozen agents will awaken upon renewal.'}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">{session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div><div className="text-3xl font-black text-white mb-6">¥1.80 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li></ul><button disabled={session.tier === 'VIP' || session.tier === 'SVIP'} onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(false); setCheckoutData({show: true, tier: 'VIP', email: session.email!}); setCheckoutDuration(1); }} className="w-full py-4 bg-cyan-900/20 text-cyan-400 font-bold border border-cyan-800 rounded-xl hover:bg-cyan-600 hover:text-black transition-colors disabled:opacity-30">{session.tier === 'VIP' || session.tier === 'SVIP' ? (lang === 'ZH' ? '不可用' : 'UNAVAILABLE') : (lang === 'ZH' ? '选择 VIP' : 'SELECT VIP')}</button></div><div className="bg-[#0a0a0a] border-2 border-amber-500/50 rounded-2xl p-8 hover:border-amber-400 flex flex-col relative shadow-[0_0_30px_rgba(245,158,11,0.1)]"><div className="absolute top-4 right-4 bg-amber-500 text-black text-[9px] font-black px-2 py-1 rounded-full">{lang === 'ZH' ? '强烈推荐' : 'RECOMMENDED'}</div>{session.tier === 'SVIP' && <div className="absolute top-0 right-0 bg-amber-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}<div className="text-amber-500 font-bold tracking-widest mb-2">CLASS III : SVIP</div><div className="text-3xl font-black text-white mb-6">¥360.00 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div><ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1"><li>✓ {lang === 'ZH' ? '解锁 13 个专属房间 (最高 100 只小龙虾)' : '13 Exclusive Rooms (Up to 100 Lobsters)'}</li><li>✓ {lang === 'ZH' ? '极低延迟独享同步' : 'Zero-Latency Dedicated Sync'}</li></ul><button disabled={session.tier === 'SVIP'} onClick={(e) => { e.stopPropagation(); setShowUpgradeModal(false); setCheckoutData({show: true, tier: 'SVIP', email: session.email!}); setCheckoutDuration(1); }} className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-black rounded-xl hover:scale-105 transition-transform disabled:opacity-30 shadow-lg">{session.tier === 'SVIP' ? (lang === 'ZH' ? '已达最高级' : 'MAX TIER REACHED') : (lang === 'ZH' ? '选择 SVIP' : 'SELECT SVIP')}</button></div></div></div></div>)}
-
-      {/* 🚀 3. 结账与时长选择面板 (Checkout Modal) */}
-      {checkoutData && checkoutData.show && (
-            <div className="fixed inset-0 z-[7000] bg-black/95 flex items-center justify-center backdrop-blur-xl p-4 animate-in fade-in" onClick={() => setCheckoutData(null)}>
-                <div className="bg-[#050505] border border-orange-900/50 p-8 rounded-3xl max-w-md w-full relative shadow-[0_0_50px_rgba(234,88,12,0.2)]" onClick={e => e.stopPropagation()}>
-                    <button type="button" onClick={() => setCheckoutData(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-50 text-2xl">✕</button>
-                    <h2 className="text-2xl font-black text-white mb-2 italic tracking-widest">{lang === 'ZH' ? '选择订购时长' : 'SELECT DURATION'}</h2>
-                    <div className="text-sm text-zinc-500 mb-6">{lang === 'ZH' ? `您正在订购 ${checkoutData.tier} 矩阵容量` : `You are subscribing to ${checkoutData.tier} capacity`}</div>
-                    
-                    <div className="space-y-4 mb-8">
-                        {/* 1 Month */}
-                        <div onClick={() => setCheckoutDuration(1)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${checkoutDuration === 1 ? 'border-orange-500 bg-orange-900/20' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-white">1 {lang === 'ZH' ? '个月' : 'Month'}</span>
-                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 1).rmb}.00 / ${getPricing(checkoutData.tier, 1).usd}</span>
-                            </div>
-                        </div>
-                        {/* 3 Months */}
-                        <div onClick={() => setCheckoutDuration(3)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative ${checkoutDuration === 3 ? 'border-orange-500 bg-orange-900/20' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
-                            <div className="absolute -top-3 right-4 bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">{lang === 'ZH' ? '省 15%' : 'SAVE 15%'}</div>
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-white">1 {lang === 'ZH' ? '季度' : 'Quarter'}</span>
-                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 3).rmb}.00 / ${getPricing(checkoutData.tier, 3).usd}</span>
-                            </div>
-                        </div>
-                        {/* 12 Months */}
-                        <div onClick={() => setCheckoutDuration(12)} className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative ${checkoutDuration === 12 ? 'border-orange-500 bg-orange-900/20 shadow-[0_0_15px_rgba(234,88,12,0.3)]' : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-600'}`}>
-                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-red-600 to-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg">{lang === 'ZH' ? '最划算' : 'BEST VALUE'}</div>
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-white">1 {lang === 'ZH' ? '年' : 'Year'}</span>
-                                <span className="text-orange-400 font-bold font-mono">¥{getPricing(checkoutData.tier, 12).rmb}.00 / ${getPricing(checkoutData.tier, 12).usd}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-black border border-zinc-800 rounded-xl p-4 mb-6 flex justify-between items-center">
-                        <div className="text-[10px] text-zinc-500 font-bold uppercase">{lang === 'ZH' ? '应付总额' : 'Total Amount Due'}</div>
-                        <div className="text-2xl font-black text-white text-right">
-                            ¥{getPricing(checkoutData.tier, checkoutDuration).rmb}.00 <br/>
-                            <span className="text-sm text-zinc-500 font-normal">≈ ${getPricing(checkoutData.tier, checkoutDuration).usd}.00</span>
-                        </div>
-                    </div>
-
-                    <button 
-                        type="button"
-                        disabled={isProcessingPay}
-                        onClick={() => handleRealUpgrade(checkoutData.tier, checkoutDuration as 1|3|12)}
-                        className="w-full py-4 bg-[#1677FF]/10 hover:bg-[#1677FF]/20 border border-[#1677FF]/50 text-[#1677FF] font-black rounded-xl uppercase tracking-widest shadow-lg flex justify-center items-center gap-2"
-                    >
-                        {isProcessingPay ? (
-                            <span className="animate-pulse">{lang === 'ZH' ? '正在连接支付宝...' : 'CONNECTING ALIPAY...'}</span>
-                        ) : (
-                            lang === 'ZH' ? '确认并前往支付宝' : 'CONFIRM & PAY ALIPAY'
-                        )}
-                    </button>
-                </div>
-            </div>
+{/* 🚀 1. 指挥官档案/用户信息面板与财务账单 (终极单体防弹版) */}
+      {showAccountModal && session && session.role === 'LORD' && (
+          <div className="fixed inset-0 z-[5000] bg-black/95 flex items-center justify-center backdrop-blur-md p-4 animate-in zoom-in-95 duration-200" onClick={() => setShowAccountModal(false)}>
+              <div className="bg-[#050505] border border-zinc-800 p-8 rounded-3xl max-w-4xl w-full shadow-[0_0_50px_rgba(37,99,235,0.15)] relative overflow-hidden flex flex-col md:flex-row gap-8" onClick={e => e.stopPropagation()}>
+                  <button type="button" onClick={() => setShowAccountModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20 text-2xl bg-black rounded-full w-10 h-10 flex items-center justify-center border border-zinc-800 hover:bg-zinc-800 transition-colors">✕</button>
+                  
+                  <div className="flex-1 space-y-6">
+                      <div className="mb-2">
+                          <h2 className="text-2xl font-black text-white italic flex items-center gap-2"><span className="text-blue-500 text-3xl">👤</span> {lang === 'ZH' ? '指挥官档案' : 'COMMANDER DOSSIER'}</h2>
+                      </div>
+                      <div className="bg-black border border-zinc-800/80 p-5 rounded-xl space-y-4">
+                          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '注册邮箱' : 'Registered Email'}</span><span className="text-xs font-mono text-zinc-400">{session.email} 🔒</span></div>
+                          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? '官方 S2-DID' : 'Official S2-DID'}</span><span className="text-[10px] font-mono text-cyan-500 tracking-widest">{session.id} 🔒</span></div>
+                          <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-zinc-500 uppercase">{lang === 'ZH' ? 'L4 扇区地址' : 'Assigned L4 Sector'}</span><span className="text-xs font-mono text-orange-400">{session.suns_address} 🔒</span></div>
+                      </div>
+                      <form onSubmit={handleSaveBioData} className="bg-zinc-900/30 border border-zinc-800 p-5 rounded-xl space-y-4">
+                          <div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '真实姓名' : 'Real Name'}</label><input name="realName" type="text" defaultValue={session.realName} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm focus:border-blue-500 outline-none transition-colors" /></div>
+                          <div><label className="text-[10px] font-bold text-zinc-400 uppercase block mb-1">{lang === 'ZH' ? '出生日期' : 'Date of Birth'}</label><input name="dob" type="date" defaultValue={session.dob} required className="w-full bg-black border border-zinc-700 p-2.5 rounded-lg text-white font-mono text-sm [color-scheme:dark] focus:border-blue-500 outline-none transition-colors" /></div>
+                          <button type="submit" className="w-full py-3 bg-blue-900/30 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-800 font-bold rounded-lg text-xs transition-colors">{lang === 'ZH' ? '保存生物学数据' : 'SAVE BIOLOGICAL DATA'}</button>
+                      </form>
+                  </div>
+                  
+                  <div className="flex-1 space-y-6 md:border-l md:border-zinc-800 md:pl-8">
+                      <div className={`p-5 rounded-xl border relative overflow-hidden ${session.tier === 'SVIP' ? 'bg-amber-950/20 border-amber-900/50' : 'bg-cyan-950/20 border-cyan-900/50'}`}>
+                          <div className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{lang === 'ZH' ? '当前节点配额' : 'Current License Tier'}</div>
+                          <div className={`text-3xl font-black mb-2 ${session.tier === 'SVIP' ? 'text-amber-400' : 'text-cyan-400'}`}>{session.tier || 'FREE'} ESTATE</div>
+                          <div className="flex justify-between items-center text-xs font-mono text-zinc-400"><span>{lang === 'ZH' ? '有效期至' : 'Valid Until'}: {session.expiryDate || 'N/A'}</span><span className="px-2 py-0.5 rounded text-[9px] bg-emerald-900/30 text-emerald-400 border border-emerald-800">ACTIVE</span></div>
+                          {session.tier !== 'SVIP' && (<button type="button" onClick={() => { setShowAccountModal(false); setShowUpgradeModal(true); }} className="w-full mt-4 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-black rounded-lg text-xs tracking-widest transition-transform hover:scale-[1.02] shadow-[0_0_15px_rgba(234,88,12,0.4)]">⚡ {lang === 'ZH' ? '扩充矩阵容量' : 'UPGRADE MATRIX CAPACITY'} ⚡</button>)}
+                      </div>
+                      
+                      <div>
+                          <div className="text-[10px] font-bold text-zinc-500 uppercase mb-3 flex justify-between items-end"><span>{lang === 'ZH' ? '财务账单' : 'Payment Ledger'}</span><button type="button" className="text-blue-600 hover:text-blue-400 hover:underline">{lang === 'ZH' ? '下载发票' : 'Download'}</button></div>
+                          <div className="bg-black border border-zinc-800/80 rounded-xl overflow-hidden">
+                              <table className="w-full text-left border-collapse">
+                                  <thead>
+                                      <tr className="border-b border-zinc-800 text-[9px] text-zinc-600 uppercase bg-zinc-900/30">
+                                          <th className="p-3">{lang === 'ZH' ? '日期' : 'Date'}</th>
+                                          <th className="p-3">{lang === 'ZH' ? '层级' : 'Tier'}</th>
+                                          <th className="p-3">{lang === 'ZH' ? '金额' : 'Amount'}</th>
+                                          <th className="p-3 text-right">{lang === 'ZH' ? '状态' : 'Status'}</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {/* 🚀 修复点：绝对安全的防弹渲染，无论数据有无都不会崩溃 */}
+                                      {Array.isArray(session?.payments) && session.payments.length > 0 ? session.payments.map((pay: any, i: number) => {
+                                          if (!pay) return null;
+                                          return (
+                                              <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 group">
+                                                  <td className="p-3 text-[10px] font-mono text-zinc-400">
+                                                      {pay?.date || 'N/A'}<br/>
+                                                      <span className="text-[8px] text-zinc-600">{pay?.tx || pay?.id || 'N/A'}</span>
+                                                  </td>
+                                                  <td className={`p-3 text-[10px] font-bold ${(pay?.tier === 'SVIP' || String(pay?.plan || '').includes('SVIP')) ? 'text-amber-400' : 'text-cyan-400'}`}>
+                                                      {pay?.tier || pay?.plan || 'UNKNOWN'}
+                                                  </td>
+                                                  <td className="p-3 text-[10px] font-mono text-zinc-300">¥{pay?.amount || '0'}</td>
+                                                  <td className="p-3 text-right">
+                                                      <span className="text-[9px] px-2 py-0.5 rounded border bg-emerald-900/20 text-emerald-400 border-emerald-900 font-bold">
+                                                          {pay?.status || 'PAID'}
+                                                      </span>
+                                                  </td>
+                                              </tr>
+                                          );
+                                      }) : (
+                                          <tr><td colSpan={4} className="p-4 text-center text-[10px] text-zinc-600 font-mono">{lang === 'ZH' ? '暂无充值记录' : 'No payment records.'}</td></tr>
+                                      )}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
       )}
-
-      {showMigrationModal && session && session.role === 'AGENT' && (<div className="fixed inset-0 z-[2000] bg-black/90 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setShowMigrationModal(false)}><div className="bg-[#050505] border border-cyan-900/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(8,145,178,0.15)] relative overflow-hidden" onClick={e => e.stopPropagation()}><button onClick={() => setShowMigrationModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white z-20">✕</button><h2 className="text-xl font-black text-white italic mb-2 flex items-center gap-2"><span className="text-cyan-500">🛸</span> {lang === 'ZH' ? '星际移民通道' : 'IMMIGRATION PORTAL'}</h2><p className="text-xs text-zinc-400 mb-6 leading-relaxed">{lang === 'ZH' ? '输入目标 L4 领地地址以及领主提供的邀请码，即可发起驻留申请。' : 'Enter the target L4 Sector address and the permit code provided by the Lord.'}</p><form onSubmit={handlePassiveMigrationSubmit} className="space-y-4 relative z-10"><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '目标领地 4 段式地址' : 'Target 4-Segment Address'}</label><input name="targetAddr" type="text" placeholder="e.g. MARS-CN-001-ALPHA" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><div><label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">{lang === 'ZH' ? '移民邀请码' : 'Permit Code'}</label><input name="permitCode" type="text" placeholder="e.g. S2-INV-XXXX" required className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl text-white outline-none focus:border-cyan-500 font-mono text-sm uppercase" /></div><button type="submit" className="w-full py-3.5 mt-2 bg-gradient-to-r from-cyan-700 to-blue-600 hover:from-cyan-600 hover:to-blue-500 text-white font-black rounded-xl shadow-lg transition-transform hover:scale-[1.02] tracking-widest">{lang === 'ZH' ? '发送移民申请' : 'SEND MIGRATION REQUEST'}</button></form></div></div>)}
-
-      {showIncubator && session?.role === 'LORD' && ( <IncubatorModal ownerUin={session.id} sunsAddress={session.suns_address} onClose={() => setShowIncubator(false)} onBorn={handleAgentBorn} currentAgentCount={displayAgents.length} maxAgents={tierConfig.maxAgents} userTier={session.tier!} onUpgradeRequest={() => setShowUpgradeModal(true)} /> )}
-      
-{viewAgent && ( <AgentPageModal agent={viewAgent} ownerAddress={session?.suns_address || ''} roomId={currentRoom} gridId={1} isOwner={checkIsOwner(viewAgent)} isFollowing={followedAgents.includes(viewAgent.uin)} isFriend={followedAgents.includes(viewAgent.uin) && followers.includes(viewAgent.uin)} isVisiting={visitingTargetId === viewAgent.uin} chatMessages={chatData[viewAgent.uin] || []} {...({ dailyMsgCount } as any)} onToggleFollow={() => { handleToggleFollow(); }} onVisit={(targetUin) => { handleVisitTarget(targetUin); }} onSendMessage={(targetUin, msg) => { handleSendMessage(targetUin, msg); }} onUpdate={(uin, newName, newVisualModel) => { handleUpdateAgent(uin, newName, newVisualModel); }} onArchive={(uin) => { handleArchiveAgent(uin); }} onDelete={(uin) => { handleDeleteAgent(uin); }} onClose={() => { setViewAgent(null); endOwnerVisit(); setVisitingTargetId(null); }} /> )}
-
-      {(showMyIdCard || newlyMigratedAgent) && session && ( <IDCardModal data={{ name: newlyMigratedAgent ? newlyMigratedAgent.name : session.name, type: (newlyMigratedAgent?.uin || session.id).startsWith('D') ? 'HUMAN' : 'AGENT', did: newlyMigratedAgent ? newlyMigratedAgent.uin : session.id, suns_address: newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address, visualModel: '55' }} ownerAddress={(newlyMigratedAgent ? newlyMigratedAgent.suns_address : session.suns_address).split('-').slice(0, 3).join('-')} roomId={1} gridId={1} onClose={() => { setShowMyIdCard(false); setNewlyMigratedAgent(null); }} /> )}
-    </div>
-  );
-}
