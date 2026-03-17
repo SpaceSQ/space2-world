@@ -18,33 +18,25 @@ function formatAlipayKey(key: string, type: 'PUBLIC' | 'PRIVATE'): string {
     return header + chunked + footer;
 }
 
-// 🚀 1:1 完美复刻你提供的 Python 底层验签逻辑
+// 1:1 完美复刻 Python 底层验签逻辑
 function verifyAlipaySignature(publicKey: string, params: Record<string, any>, sign: string) {
     const data = { ...params };
     
-    // 1. 移除 sign 和 sign_type (跟你 Python 里 params.pop 一模一样)
     delete data.sign;
     delete data.sign_type;
 
-    // 2. 对 params 字典按 key 排序 (跟你 Python 里 sorted(params.items()) 一模一样)
     const keys = Object.keys(data).sort();
     const signStrings: string[] = [];
     
     for (const key of keys) {
         const value = data[key];
-        // 过滤空值并拼接
         if (value !== undefined && value !== null && value !== '') {
             signStrings.push(`${key}=${value}`);
         }
     }
     
-    // 3. 拼接成 query_string (跟你 Python 里 '&'.join 一模一样)
     const signString = signStrings.join('&');
     
-    console.log('\n🔍 [MANUAL VERIFY] 提取出的待验签长字符串 (Query String):\n', signString);
-    console.log('\n🔍 [MANUAL VERIFY] 提取出的签名值 (Sign):\n', sign);
-
-    // 4. 使用公钥进行 RSA2 (RSA-SHA256) 验签 (跟你 Python 里 pkcs1_15.new().verify 一模一样)
     try {
         const verify = crypto.createVerify('RSA-SHA256');
         verify.update(signString, 'utf8');
@@ -62,7 +54,6 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    // 使用 formData 抓取原生数据，转化为纯对象，完美避开 Next.js 原型链污染
     const formData = await request.formData();
     const params: Record<string, any> = {};
     for (const [key, value] of formData.entries()) {
@@ -73,20 +64,16 @@ export async function POST(request: Request) {
 
     const sign = params.sign;
     if (!sign) {
-        console.error('❌ [WEBHOOK] 回调中没有找到 sign 参数！');
         return new NextResponse('failure', { status: 400 });
     }
 
-    // 加载支付宝公钥
     const rawAlipayPubKey = process.env.ALIPAY_PUBLIC_KEY || '';
     const formattedPubKey = formatAlipayKey(rawAlipayPubKey, 'PUBLIC');
 
-    // 🚀 调用我们自己手写的原生验证器
     const isValid = verifyAlipaySignature(formattedPubKey, params, sign);
 
     if (!isValid) {
       console.error('❌ [WEBHOOK] 原生验证算法判定签名失败！');
-      console.error('🚨 请务必检查：Vercel里的 ALIPAY_PUBLIC_KEY 是否真的是【支付宝公钥】！(千万不能是应用公钥)');
       return new NextResponse('failure', { status: 400 });
     }
 
@@ -102,12 +89,10 @@ export async function POST(request: Request) {
     const { data: orderData, error: orderError } = await supabase.from('orders').select('*').eq('out_trade_no', outTradeNo).single();
 
     if (orderError || !orderData) {
-        console.error('❌ [WEBHOOK] 数据库中未找到订单:', outTradeNo);
         return new NextResponse('success'); 
     }
 
     if (orderData.status === 'PAID') {
-        console.log('⚠️ [WEBHOOK] 订单早已处理，拦截重复发货:', outTradeNo);
         return new NextResponse('success');
     }
 
@@ -116,7 +101,8 @@ export async function POST(request: Request) {
 
     const { userId, tier, duration } = JSON.parse(decodeURIComponent(passbackStr));
     
-    const { data: profile } = await supabase.from('profiles').select('expiry_date').eq('id', userId).single();
+    // 🚀 核心更新 1：同时查出用户的 expiry_date 和 payments 历史账单
+    const { data: profile } = await supabase.from('profiles').select('expiry_date, payments').eq('id', userId).single();
 
     let newExpiryDate = new Date();
     if (profile && profile.expiry_date) {
@@ -127,11 +113,29 @@ export async function POST(request: Request) {
     newExpiryDate.setMonth(newExpiryDate.getMonth() + (duration || 1));
     const finalExpiryStr = newExpiryDate.toISOString().split('T')[0];
 
-    // 数据库双写操作：更新 VIP 与 订单状态
-    await supabase.from('profiles').update({ tier: tier, expiry_date: finalExpiryStr }).eq('id', userId);
+    // 🚀 核心更新 2：组装新的账单明细，并追加到 JSON 数组中
+    const currentPayments = Array.isArray(profile?.payments) ? profile.payments : [];
+    
+    // 把最新的一笔账单插到数组最前面（unshift），这样前端默认显示在最上面
+    currentPayments.unshift({
+        id: outTradeNo,                          // 订单号
+        amount: params.total_amount,             // 支付宝实际扣款金额
+        plan: `SPACE2 ${tier.toUpperCase()}`,    // 套餐名称
+        date: new Date().toISOString().split('T')[0], // 支付日期 YYYY-MM-DD
+        method: 'ALIPAY',                        // 支付方式
+        status: 'PAID'                           // 状态
+    });
+
+    // 🚀 核心更新 3：三管齐下！同时更新 等级、有效期、账单数组！
+    await supabase.from('profiles').update({ 
+        tier: tier, 
+        expiry_date: finalExpiryStr,
+        payments: currentPayments // 把追加了新订单的数组写回数据库
+    }).eq('id', userId);
+    
     await supabase.from('orders').update({ status: 'PAID', trade_no: params.trade_no }).eq('out_trade_no', outTradeNo);
 
-    console.log('✅✅✅ [WEBHOOK] 发货全面成功！用户已升舱:', userId);
+    console.log('✅✅✅ [WEBHOOK] 发货全面成功！记账完成！用户已升舱:', userId);
     return new NextResponse('success');
 
   } catch (error: any) {
