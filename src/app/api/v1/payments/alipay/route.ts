@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     if (!rawPrivateKey || !rawAppId) return NextResponse.json({ paymentUrl: null, error: 'Missing Keys' }, { status: 500 }); 
 
-    const amount = price || (tier === 'VIP' ? 1.00 : 360.00);
+    const amount = price || (tier === 'VIP' ? 72.00 : 360.00);
     const outTradeNo = 'ORDER_' + Date.now() + '_' + uin.slice(-6);
 
     if (userId) {
