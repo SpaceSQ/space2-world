@@ -1303,7 +1303,8 @@ export default function CrayfishPlanet() {
           <div className="border-t border-zinc-800/50">
               <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="text-[10px] text-zinc-600 font-mono">
-                      {lang === 'ZH' ? '版权所有' : 'Copyright'} © 2026 @space2.world. {lang === 'ZH' ? '保留所有权利。' : 'All Rights Reserved.'}
+                    {lang === 'ZH' ? '版权所有' : 'Copyright'} © 2026 @space2.world. {lang === 'ZH' ? '保留所有权利。' : 'All Rights Reserved.'}
+                 <Link href="/terms" className="ml-4 hover:text-white underline">Terms & Policies</Link>
                   </div>
                   <div className="flex gap-4 text-zinc-600">
                       <span className="text-[10px] hover:text-white cursor-pointer transition-colors">TWITTER (X)</span>
