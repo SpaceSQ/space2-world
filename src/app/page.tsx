@@ -9,6 +9,7 @@ import { AgentPageModal } from '@/components/AgentPageModal';
 import { IDCardModal } from '@/components/IDCardModal'; 
 import { MEMBERSHIP_TIERS, MembershipTier } from '@/lib/membership-config';
 import { generateFreeAgentID } from '@/lib/id-generator'; 
+import Link from 'next/link';
 
 // 🌌 核心算法：元宇宙无限折叠空间寻址引擎
 const calculateAddressFromN = (n: number) => {
