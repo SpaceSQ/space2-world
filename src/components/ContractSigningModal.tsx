@@ -131,7 +131,7 @@ export const ContractSigningModal = ({ isOpen, mode, provider, consumer, contrac
 
            {/* Legal Notice */}
            <div className="text-[10px] text-zinc-500 bg-zinc-900/50 p-3 rounded border border-zinc-800">
-              By cryptographically signing this Smart Contract, both parties agree to the Space² Decentralized Service Terms. 
+              By cryptographically signing this Smart Contract, both parties agree to the Space² Digital Service Terms. 
               The transaction amount will be recorded on the Ledger for Reputation Score calculation.
            </div>
         </div>
