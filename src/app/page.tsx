@@ -415,7 +415,7 @@ export default function CrayfishPlanet() {
   // ==========================================
   const getPricing = (tier: string, duration: number) => {
       if (tier === 'VIP') {
-          if (duration === 1) return { rmb: 1.8, usd: 10 };
+          if (duration === 1) return { rmb: 72, usd: 10 };
           if (duration === 3) return { rmb: 180, usd: 25 };
           if (duration === 12) return { rmb: 600, usd: 85 };
       } else { 
@@ -423,7 +423,7 @@ export default function CrayfishPlanet() {
           if (duration === 3) return { rmb: 900, usd: 125 };
           if (duration === 12) return { rmb: 3000, usd: 425 };
       }
-      return { rmb: 1.8, usd: 10 };
+      return { rmb: 72, usd: 10 };
   };
 
   // ==========================================
@@ -1731,7 +1731,7 @@ export default function CrayfishPlanet() {
                       <div className="bg-[#0a0a0a] border-2 border-cyan-900/50 rounded-2xl p-8 hover:border-cyan-500 flex flex-col relative">
                           {session.tier === 'VIP' && <div className="absolute top-0 right-0 bg-cyan-600 text-black text-[10px] font-black px-3 py-1 rounded-bl-lg">{lang === 'ZH' ? '当前套餐' : 'CURRENT PLAN'}</div>}
                           <div className="text-cyan-500 font-bold tracking-widest mb-2">CLASS II : VIP</div>
-                          <div className="text-3xl font-black text-white mb-6">¥1.80 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div>
+                          <div className="text-3xl font-black text-white mb-6">¥72 <span className="text-sm font-normal text-zinc-500">{lang === 'ZH' ? '/ 月' : '/ month'}</span></div>
                           <ul className="text-sm text-zinc-300 space-y-3 mb-8 flex-1">
                               <li>✓ {lang === 'ZH' ? '解锁 1 个专属房间 (最高 8 只小龙虾)' : '1 Exclusive Room (Up to 8 Lobsters)'}</li>
                               <li>✓ {lang === 'ZH' ? '基础高级逻辑网格' : 'Advanced Logic Matrices'}</li>
