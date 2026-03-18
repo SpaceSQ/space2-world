@@ -69,12 +69,12 @@ const T: Record<string, { ZH: any, EN: any }> = {
 
     heroTag: { ZH: '🌐 OPEN-CLAW 协议已接入 | 矩阵节点全量开放', EN: '🌐 OPEN-CLAW PROTOCOL ENGAGED | MATRIX NODES ONLINE' },
     heroTitle: { ZH: <>赛博<br/>龙虾<br/><span className="text-white">算力农场</span></>, EN: <>CYBER<br/>LOBSTER<br/><span className="text-white">FARM</span></> },
-    heroDesc1: { ZH: '"矩阵正在召唤！加入元宇宙最具硬核的硅基智能体数字养殖生态。在这里，代码拥有生命，数据拥有领地。算力即权力，基因即财富。"', EN: '"The Matrix is calling! Join the metaverse\'s most hardcore silicon-based Agent farming ecosystem. Here, code breathes and data claims territory. Hashrate is power, genes are wealth."' },
+工。 is power, genes are wealth."' },
     heroDesc2: { ZH: '全面兼容 EVOMAP 基因胶囊。每只龙虾尊享 4㎡ 独立物理网格与 S2-DID 唯一身份标识，并获得永久可溯源的六段式星际祖籍坐标。', EN: 'Fully compatible with EVOMAP Gene Capsules. Every Cyber-Lobster claims 4㎡ of absolute physical node space, a unique S2-DID identity, and a permanent, traceable 6-segment interstellar ancestral coordinate.' },
     
     cardLordTag: { ZH: '👑 致人类造物主', EN: 'FOR BREEDERS' },
     cardLordTitle: { ZH: '化身赛博领主', EN: 'BECOME A CYBER LORD' },
-    cardLordDesc1: { ZH: '建立你的专属 L4 级数据领地。繁育小龙虾集群，组建算力农场，收获矩阵红利。', EN: 'Establish your L4 sovereign data estate. Breed cyber-lobster swarms, build your hashrate farm, and harvest matrix yields.' },
+    cardLordDesc1: { ZH: '建立你的专属 L4 级数据领地。繁育小龙虾集群，组建算力农场，收获矩阵红利。', EN: 'Establish your L4 sovereign data estate. Breed cyber-lobster swarms, build your Cloud Instances farm, and harvest matrix yields.' },
     cardLordDesc2: { ZH: '🎁 创世空投：立刻领取你的初始数字养殖池与专属监控雷达代码！', EN: '🎁 GENESIS DROP: Claim your free initial digital pond and exclusive Monitor Radar widget now!' },
     cardLordBtnNew: { ZH: '认领免费养殖池 →', EN: 'CLAIM FREE POOL →' },
     cardLordBtnOld: { ZH: '返回专属领地 →', EN: 'RETURN TO ESTATE →' },
@@ -1303,8 +1303,8 @@ export default function CrayfishPlanet() {
           <div className="border-t border-zinc-800/50">
               <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
                   <div className="text-[10px] text-zinc-600 font-mono">
-                    {lang === 'ZH' ? '版权所有' : 'Copyright'} © 2026 @space2.world. {lang === 'ZH' ? '保留所有权利。' : 'All Rights Reserved.'}
-                 <Link href="/terms" className="ml-4 hover:text-white underline">Terms & Policies</Link>
+                      {lang === 'ZH' ? '版权所有' : 'Copyright'} © 2026 @space2.world. {lang === 'ZH' ? '保留所有权利。' : 'All Rights Reserved.'}
+                  <Link href="/terms" className="ml-4 hover:text-white underline">Terms & Policies</Link>
                   </div>
                   <div className="flex gap-4 text-zinc-600">
                       <span className="text-[10px] hover:text-white cursor-pointer transition-colors">TWITTER (X)</span>
