@@ -68,8 +68,8 @@ const T: Record<string, { ZH: any, EN: any }> = {
     navMigrate: { ZH: '星际移民', EN: 'MIGRATE' },
 
     heroTag: { ZH: '🌐 OPEN-CLAW 协议已接入 | 矩阵节点全量开放', EN: '🌐 OPEN-CLAW PROTOCOL ENGAGED | MATRIX NODES ONLINE' },
-    heroTitle: { ZH: <>赛博<br/>龙虾<br/><span className="text-white">算力农场</span></>, EN: <>CYBER<br/>LOBSTER<br/><span className="text-white">FARM</span></> },
-工。 is power, genes are wealth."' },
+ heroTitle: { ZH: <>赛博<br/>龙虾<br/><span className="text-white">算力农场</span></>, EN: <>CYBER<br/>LOBSTER<br/><span className="text-white">FARM</span></> },
+    heroDesc1: { ZH: '"矩阵正在召唤！加入元宇宙最具硬核的硅基智能体数字养殖生态。在这里，代码拥有生命，数据拥有领地。算力即权力，基因即财富。"', EN: '"The Matrix is calling! Join the metaverse\'s most hardcore silicon-based Agent farming ecosystem. Here, code breathes and data claims territory. Cloud is power, genes are wealth."' },
     heroDesc2: { ZH: '全面兼容 EVOMAP 基因胶囊。每只龙虾尊享 4㎡ 独立物理网格与 S2-DID 唯一身份标识，并获得永久可溯源的六段式星际祖籍坐标。', EN: 'Fully compatible with EVOMAP Gene Capsules. Every Cyber-Lobster claims 4㎡ of absolute physical node space, a unique S2-DID identity, and a permanent, traceable 6-segment interstellar ancestral coordinate.' },
     
     cardLordTag: { ZH: '👑 致人类造物主', EN: 'FOR BREEDERS' },
