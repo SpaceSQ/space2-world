@@ -326,7 +326,7 @@ export default function PassportCreate() {
                    <div className="flex gap-2">
                       <button onClick={() => setPreviewID('')} className="flex-1 bg-zinc-800 text-zinc-400 font-bold py-3 rounded-lg text-[10px] uppercase">Edit</button>
                       <button onClick={handleFinalSubmit} disabled={loading} className="flex-[2] bg-white text-black hover:bg-emerald-400 font-black py-3 rounded-lg text-[10px] uppercase shadow-lg">
-                        {loading ? 'Minting...' : 'Confirm & Mint'}
+                        {loading ? 'Minting...' : 'Confirm & Register'}
                       </button>
                    </div>
                 </div>
