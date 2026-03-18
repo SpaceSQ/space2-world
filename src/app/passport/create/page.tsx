@@ -326,7 +326,7 @@ export default function PassportCreate() {
                    <div className="flex gap-2">
                       <button onClick={() => setPreviewID('')} className="flex-1 bg-zinc-800 text-zinc-400 font-bold py-3 rounded-lg text-[10px] uppercase">Edit</button>
                       <button onClick={handleFinalSubmit} disabled={loading} className="flex-[2] bg-white text-black hover:bg-emerald-400 font-black py-3 rounded-lg text-[10px] uppercase shadow-lg">
-                        {loading ? 'Minting...' : 'Confirm & Register'}
+                        {loading ? 'Registering...' : 'Confirm & Register'}
                       </button>
                    </div>
                 </div>
@@ -337,7 +337,7 @@ export default function PassportCreate() {
         {step === 'SUCCESS' && (
           <div className="bg-black/40 border border-zinc-800 p-8 rounded-xl backdrop-blur-md text-center animate-in zoom-in-95">
             <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center text-3xl mb-4 mx-auto shadow-lg">✓</div>
-            <h2 className="text-xl font-black text-white mb-2">CITIZEN MINTED</h2>
+            <h2 className="text-xl font-black text-white mb-2">CITIZEN REGISTERED</h2>
             <p className="text-[10px] text-zinc-400 mb-6">Your sovereign identity is secured.</p>
             <button onClick={() => router.push('/')} className="w-full px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg text-[10px] uppercase">Enter Dashboard</button>
           </div>
