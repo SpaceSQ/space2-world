@@ -218,7 +218,7 @@ export default function PublicAddressPage() {
                         </h2>
                         
                         {/* 无缝调用雷达图组件 */}
-                        <div className="w-full aspect-square relative z-10 flex justify-center items-center">
+                      <div className="w-full max-w-[280px] mx-auto aspect-square relative z-10 flex justify-center items-center">
                             <NeuroRadarChart stats={stats} />
                         </div>
                         
