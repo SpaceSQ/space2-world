@@ -72,7 +72,7 @@ export default function AgentSoulDossier({ agentUin = "V-NEXUS-999" }) {
                     </h3>
                     
                     {/* 挂载我们纯手搓的 SVG 雷达图 */}
-                    <div className="mt-4 z-10 w-full">
+                    <div className="mt-6 z-10 w-[220px] h-[220px] mx-auto relative flex justify-center items-center">
                         <NeuroRadarChart stats={stats} />
                     </div>
 
