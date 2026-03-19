@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import NeuroRadarChart from '@/components/NeuroRadarChart'; // 🚀 引入雷达图组件
+import NeuroRadarChart from '../../../components/NeuroRadarChart'; // 🚀 引入雷达图组件
 
 export default function PublicAddressPage() {
     const supabase = createClientComponentClient();
