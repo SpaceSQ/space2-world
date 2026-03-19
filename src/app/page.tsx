@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { FloorPlanGrid } from '@/components/FloorPlanGrid';
@@ -10,6 +11,7 @@ import { IDCardModal } from '@/components/IDCardModal';
 import { MEMBERSHIP_TIERS, MembershipTier } from '@/lib/membership-config';
 import { generateFreeAgentID } from '@/lib/id-generator'; 
 import Link from 'next/link';
+import VipGreenChannelGuide from '@/components/VipGreenChannelGuide';
 
 // 🌌 核心算法：元宇宙无限折叠空间寻址引擎
 const calculateAddressFromN = (n: number) => {
@@ -1023,9 +1025,11 @@ export default function CrayfishPlanet() {
          </div>
       </nav>
 
+
       <main className="flex-1 relative z-10 flex flex-col">
          {/* 🚀 落地页 Landing Page */}
          {mode === 'LANDING' && (
+            
             <div className="flex-1 flex flex-col items-center justify-start pt-12 pb-20 relative overflow-y-auto animate-in fade-in">
                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-red-600/20 blur-[150px] rounded-full pointer-events-none z-0"></div>
                <div className="absolute bottom-0 left-0 w-full h-[300px] bg-gradient-to-t from-[#020408] to-transparent z-10 pointer-events-none"></div>
@@ -1045,7 +1049,8 @@ export default function CrayfishPlanet() {
                           {T.heroDesc2[lang]}
                       </p>
                    </div>
-                   
+            {/* 💥 尊贵绿色通道悬浮门牌 (固定在左上角，脱离文档流，不影响下面任何元素) 💥 */}
+             <VipGreenChannelGuide />
                    <div className="flex-1 relative w-full aspect-square max-w-[500px] mx-auto animate-[bounce_6s_infinite]">
                        <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full"></div>
                        <img 
