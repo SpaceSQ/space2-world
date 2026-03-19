@@ -33,8 +33,8 @@ export default function NeuroRadarChart({ stats }: { stats: any }) {
   }).join(' ');
 
   return (
-    <div className="relative flex items-center justify-center w-full h-full min-h-[300px]">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+     <div className="relative flex items-center justify-center w-full h-full">
+      <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
         {/* 背景同心网格 (蛛网) */}
         {[0.2, 0.4, 0.6, 0.8, 1].map((scale, level) => (
           <polygon
