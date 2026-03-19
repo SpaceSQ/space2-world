@@ -1,7 +1,7 @@
 // app/test-soul/page.tsx
 "use client";
 import React from 'react';
-import AgentSoulDossier from '../components/AgentSoulDossier';
+import AgentSoulDossier from '../../components/AgentSoulDossier';
 
 export default function TestSoulPage() {
   return (
